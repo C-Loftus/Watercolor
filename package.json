@@ -1,0 +1,38 @@
+{
+  "name": "my-project",
+  "version": "0.0.1",
+  "description": "My new project",
+  "main": "index.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:app": "vite build",
+    "build": "npm run build:app",
+    "start:app": "gjs -m dist/main.js",
+    "debug:app": "gjs -m dist/main.js",
+    "start": "npm run build && npm run start:app",
+    "validate": "npm run validate:types && npm run validate:app",
+    "validate:types": "tsc --project tsconfig.types.json",
+    "validate:app": "tsc --noEmit",
+    "clear": "rm -rf dist"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@rollup/plugin-babel": "^6.0.4",
+    "rollup": "^4.13.0",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.6"
+  },
+  "dependencies": {
+    "@girs/adw-1": "^1.5.0-4.0.0-beta.2",
+    "@girs/atspi-2.0": "^2.0.0-3.3.0",
+    "@girs/gio-2.0": "^2.80.0-4.0.0-beta.2",
+    "@girs/gjs": "^4.0.0-beta.2",
+    "@girs/glib-2.0": "^2.80.0-4.0.0-beta.2",
+    "@girs/gtk-4.0": "^4.14.1-4.0.0-beta.2"
+  },
+  "keywords": [],
+  "author": ""
+}
