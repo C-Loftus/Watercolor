@@ -1,10 +1,3 @@
-/*
- * Usage:
- *    gjs dump-tree <application-name>
- *
- * Dump the accessibility hiearchy tree for a given application.
- */
-
 const Atspi = imports.gi.Atspi;
 const GLib = imports.gi.GLib;
 
@@ -47,11 +40,21 @@ function dumpNodeContent(node, padding) {
   nodeInfo = printInfo(node);
   print(padding + nodeInfo);
 
-  for (let i = 0; i < node.get_child_count(); i++)
+  for (let i = 0; i < node.get_child_count(); i++) {
     dumpNodeContent(node.get_child_at_index(i), newPadding);
-  let coord = node.get_position(Atspi.CoordType.ATSPI_COORD_TYPE_SCREEN);
-  print(coord.x);
-  print(coord.y);
+    let coord = node.get_position(Atspi.CoordType.ATSPI_COORD_TYPE_SCREEN);
+    print(coord.x);
+    print(coord.y);
+    print(
+      node
+        .get_accessible_at_point(
+          coord.x,
+          coord.y,
+          Atspi.CoordType.ATSPI_COORD_TYPE_SCREEN
+        )
+        .get_state_set()
+    );
+  }
 }
 
 function dumpApplication(appName) {
@@ -78,7 +81,7 @@ function dumpApplication(appName) {
 let command = "./cat.sh";
 
 try {
-  GLib.spawn_command_line_sync(command);
+  GLib.spawn_command_line_async(command);
 } catch (err) {
   print("ERROR: " + err);
 }
@@ -89,3 +92,10 @@ try {
 //     Gets the states currently held by an object.
 
 // name watercolor
+if (ARGV.length == 1) {
+  let appName = ARGV[0];
+
+  dumpApplication(appName);
+} else {
+  print("ERROR: We only dump the content of a specific app, specify the name");
+}
