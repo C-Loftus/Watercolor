@@ -6,6 +6,7 @@
  */
 
 const Atspi = imports.gi.Atspi;
+const GLib = imports.gi.GLib;
 
 function getLabel(accessible) {
   let relationSet;
@@ -73,10 +74,16 @@ function dumpApplication(appName) {
   }
 }
 
-if (ARGV.length == 1) {
-  let appName = ARGV[0];
+// Define the command you want to execute
+let command = "./cat.sh";
 
-  dumpApplication(appName);
-} else {
-  print("ERROR: We only dump the content of a specific app, specify the name");
+try {
+  GLib.spawn_command_line_sync(command);
+} catch (err) {
+  print("ERROR: " + err);
 }
+
+// atspi_state_set_get_states method
+//     Returns the states in an #AtspiStateSet as an array.
+// atspi_accessible_get_state_set method
+//     Gets the states currently held by an object.
