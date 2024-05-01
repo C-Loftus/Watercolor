@@ -7,9 +7,9 @@ export default defineConfig({
     sourcemap: true,
     minify: false,
     rollupOptions: {
-      input: "main.ts",
+      input: "src/main.ts",
       output: {
-        entryFileNames: "main.js",
+        entryFileNames: "src/main.js",
       },
       external: [new RegExp("^gi://*", "i")],
       plugins: [
