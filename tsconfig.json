@@ -5,7 +5,8 @@
     ],
     "types": [
       "@girs/gjs",
-      "@girs/adw-1"
+      "@girs/adw-1",
+      "node"
     ],
     "target": "ESNext",
     "module": "ESNext",

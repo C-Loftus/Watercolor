@@ -1,58 +1,51 @@
-// const Atspi = imports.gi.Atspi;
 import Atspi from "@girs/atspi-2.0";
 
 function getLabel(accessible: Atspi.Accessible) {
-  let relationSet;
-  let i = 0;
+  const relationSet = accessible.get_relation_set();
+  if (!relationSet) return null;
 
-  relationSet = accessible.get_relation_set();
-  if (!relationSet) return "NULL";
-
-  /* something like "let relation in relationSet" doesn't work, and
-   * it seems that GArray "len" is not exposed */
-  while (relationSet[i]) {
-    let relation = relationSet[i];
-
-    if (relation.get_relation_type() == Atspi.RelationType.LABELLED_BY)
+  for (let relation of relationSet) {
+    if (relation.get_relation_type() === Atspi.RelationType.LABELLED_BY)
       return relation.get_target(0).get_name();
-
-    i++;
   }
 
-  return "NULL";
+  return null;
 }
 
-function printInfo(accessible: Atspi.Accessible, appName: string | null) {
-  let name;
-  let roleName = "NULL";
-
-  name = accessible.get_name();
+function printInfo(accessible: Atspi.Accessible) {
+  let name = accessible.get_name();
   if (!name) name = getLabel(accessible);
-  roleName = accessible.get_role_name()!;
+  const roleName = accessible.get_role_name()!;
 
-  return "(" + name + ", " + roleName + ")";
+  return `(${name}, ${roleName})`;
 }
 
 function dumpNodeContent(node: Atspi.Accessible, padding: string) {
   let newPadding = padding + "  ";
 
-  const nodeInfo = printInfo(node, node.get_name());
+  const nodeInfo = printInfo(node);
+
   print(padding + nodeInfo);
 
-  for (let i = 0; i < node.get_child_count(); i++)
-    dumpNodeContent(node.get_child_at_index(i), newPadding);
-}
+  for (let i = 0; i < node.get_child_count(); i++) {
+    const child: Atspi.Accessible | null = node.get_child_at_index(i);
 
-function dumpApplication(name: string) {
-  Atspi.init();
+    if (!child) continue;
 
-  const desktop = Atspi.get_desktop(0);
-  for (let i = 0; i < desktop.get_child_count(); i++) {
-    let app = desktop.get_child_at_index(i);
-    if (app.get_name() === name) {
-      dumpNodeContent(app, "  ");
-    }
+    // const { x, y } = node.get_position(Atspi.CoordType.SCREEN);
+
+    if (child.get_state_set().contains(Atspi.StateType.VISIBLE))
+      dumpNodeContent(child, newPadding);
   }
 }
 
-dumpApplication("Firefox");
+function main() {
+  Atspi.init();
+  const name = ARGV[0];
+
+  const desktop = Atspi.get_desktop(0);
+  for (let i = 0, app; (app = desktop.get_child_at_index(i)); i++)
+    if (app.get_name() === name) dumpNodeContent(app, "  ");
+}
+
+main();
