@@ -1,3 +1,4 @@
+// const Atspi = imports.gi.Atspi;
 import Atspi from "@girs/atspi-2.0";
 
 function getLabel(accessible: Atspi.Accessible) {
