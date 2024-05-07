@@ -7,6 +7,9 @@ from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas 
 from talon import skia
 from talon.skia.imagefilter import ImageFilter
+import itertools
+
+alphabet = [''.join(comb) for comb in itertools.combinations('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 2)]
 
 
 BACKGROUND_COLOR = "00FF00" 

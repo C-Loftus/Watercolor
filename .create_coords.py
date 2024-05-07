@@ -1,11 +1,7 @@
 #!/usr/bin/python
 import pyatspi
-import itertools
 import json
  
-
-alphabet = [''.join(comb) for comb in itertools.combinations('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 2)]
-
 class FocusedWindow():
    
     @staticmethod
