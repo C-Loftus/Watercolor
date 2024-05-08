@@ -69,9 +69,12 @@ class A11yTree():
                 if visible and showing and (sensitive or focusable):
                     x = point.x
                     y = point.y
-                    if  (x > -2000 and y > -2000) and not A11yTree.point_exists(x, y):
-                        name = tree.get_name() 
-                        A11yTree._add_element(name, x, y)
+                    name = tree.get_name() 
+
+                    if  (x > -2000 and y > -2000) and not A11yTree.point_exists(x, y) and  name != None:
+                        if name != "":
+                            A11yTree._add_element(name, x, y)
+                            
                 A11yTree._create(tree)
                
         except Exception as e:
