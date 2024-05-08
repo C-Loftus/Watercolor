@@ -28,7 +28,7 @@ class Desktop():
         desktop = pyatspi.Registry.getDesktop(0)
         for app in desktop:
             for window in app:
-                logging.debug(f"States for {window}: {list(window.get_state_set().get_states())}")
+                logging.info(f"States for {window}: {list(window.get_state_set().get_states())}")
                 if window.getState().contains(pyatspi.STATE_ACTIVE):
                     return window
                 
@@ -38,10 +38,15 @@ class Desktop():
 class A11yTree():
     
     elements = []
+    lookup = {}
 
     @staticmethod
     def _add_element(name, x, y): 
         A11yTree.elements.append({"name": name, "x": x, "y": y})
+        A11yTree.lookup[(x, y)] = True
+
+    def point_exists(x, y):
+        return A11yTree.lookup.get((x, y), False)
       
     @staticmethod
     def _create(root):
@@ -52,24 +57,21 @@ class A11yTree():
                 if not tree: continue
 
                 point = tree.get_position(pyatspi.XY_SCREEN)
-                states = tree.get_state_set()
+                states = tree.get_state_set() 
+                logging.info(f"States for {tree}: {list(states.get_states())}")
                 # https://docs.gtk.org/atspi2/enum.StateType.html
                  
                 visible = states.contains(pyatspi.STATE_VISIBLE)
                 sensitive = states.contains(pyatspi.STATE_SENSITIVE)
                 focusable = states.contains(pyatspi.STATE_FOCUSABLE)
+                showing = states.contains(pyatspi.STATE_SHOWING)
 
-                if visible and (sensitive or focusable):
-                    name = tree.get_name() 
+                if visible and showing and (sensitive or focusable):
                     x = point.x
                     y = point.y
-
-                # if x < -2000 or y < -2000:
-                #     continue
-
-                    # print('added')
-
-                A11yTree._add_element(name, x, y)
+                    if  (x > -2000 and y > -2000) and not A11yTree.point_exists(x, y):
+                        name = tree.get_name() 
+                        A11yTree._add_element(name, x, y)
 
                 A11yTree._create(tree)
                
@@ -91,6 +93,7 @@ class A11yTree():
             return
                     
         A11yTree.elements = []
+        A11yTree.lookup = {}
         A11yTree._create(root)
 
         # don't regenerate the hats if Firefox performed a psuedo focus where nothing actually changed on the screen

@@ -56,27 +56,27 @@ def on_draw(c: SkiaCanvas):
 
 class ScreenLabels():
     
-    points: list[tuple[int, int]] = []
+    points: list[tuple[int, int, str]] = []
     canvas: Canvas = None
 
     @classmethod
     def clear(cls):
-        if not cls.canvas:
-            return
-
-        cls.canvas.close()
-        cls.canvas.unregister("draw", on_draw)
-        cls.canvas = None
+        if cls.canvas:
+            cls.canvas.close()
+            cls.canvas.unregister("draw", on_draw)
+            cls.canvas = None
+        
         cls.points = []
         
     
     @classmethod
-    def add(cls, x, y):
-        cls.points.append((x, y, alphabet[len(cls.points)]))
+    def add(cls, x, y, text):
+        text = alphabet[len(cls.points)] if not text else text
+
+        cls.points.append((x, y, text))
 
     @classmethod
     def render(cls):
-        cls.clear()
 
         screen: ui.Screen = ui.main_screen()
 
@@ -108,6 +108,6 @@ def paintTree(_):
     ScreenLabels.clear()
 
     for element in elements:
-        ScreenLabels.add(element["x"], element["y"])
+        ScreenLabels.add(element["x"], element["y"], element["name"])
 
     ScreenLabels.render()
