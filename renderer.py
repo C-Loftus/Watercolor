@@ -9,14 +9,15 @@ from talon import skia
 from talon.skia.imagefilter import ImageFilter
 import itertools
 
-alphabet = [''.join(comb) for comb in itertools.combinations('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 2)]
+alphabet = [''.join(comb) for comb in itertools.combinations('ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789', 4)]
 
-
-BACKGROUND_COLOR = "00FF00" 
+FOREGROUND_TEXT_COLOR = "1f2335"
+BACKGROUND_COLOR = "7aa2f7" 
 HAT_RADIUS = 14
+PERCENT_TRANSPARENCY = 0.5
 
 def get_alpha_color() -> str:
-    return f"{(0):02x}"
+    return f"{(int((1- PERCENT_TRANSPARENCY) * 255)):02x}"
     
 def get_color():
     color_alpha = get_alpha_color()
@@ -30,15 +31,16 @@ class A11yElement(TypedDict):
 
 def on_draw(c: SkiaCanvas):
 
-    c.paint.color = BACKGROUND_COLOR
-    c.paint.style = c.paint.Style.FILL
+
 
     # c.paint.imagefilter = ImageFilter.drop_shadow(1, 1, 1, 1, color_gradient)
 
-    for (x, y) in ScreenLabels.points:
-            c.paint.shader = skia.Shader.radial_gradient(
-                 (x, y), HAT_RADIUS, [get_color(), 255]
-                 )
+    for (x, y, text) in ScreenLabels.points:
+            # c.paint.shader = skia.Shader.radial_gradient(
+            #      (x, y), HAT_RADIUS, [get_color(), 255]
+            #      )
+            c.paint.color = get_color()
+            c.paint.style = c.paint.Style.FILL
             c.draw_rect(
                 Rect(
                         x - HAT_RADIUS,
@@ -46,7 +48,11 @@ def on_draw(c: SkiaCanvas):
                         HAT_RADIUS * 2,
                         HAT_RADIUS * 2,
                 )
-                )
+            )
+            c.paint.color = FOREGROUND_TEXT_COLOR
+            c.paint.style = c.paint.Style.FILL
+            c.paint.stroke_width = 3
+            c.draw_text(text, x - HAT_RADIUS, y)
 
 class ScreenLabels():
     
@@ -66,7 +72,7 @@ class ScreenLabels():
     
     @classmethod
     def add(cls, x, y):
-        cls.points.append((x, y))
+        cls.points.append((x, y, alphabet[len(cls.points)]))
 
     @classmethod
     def render(cls):
