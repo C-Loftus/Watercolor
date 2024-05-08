@@ -72,7 +72,6 @@ class A11yTree():
                     if  (x > -2000 and y > -2000) and not A11yTree.point_exists(x, y):
                         name = tree.get_name() 
                         A11yTree._add_element(name, x, y)
-
                 A11yTree._create(tree)
                
         except Exception as e:
@@ -87,10 +86,9 @@ class A11yTree():
 
         'any_data', 'copy', 'detail1', 'detail2', 'host_application', 'main', 'quit', 'rawType', 'sender', 'source', 'source_name', 'source_role', 'type']
         '''
-        try:
-            root = Desktop.getRoot()
-        except RuntimeError:
-            return
+        
+        root = Desktop.getRoot()
+   
                     
         A11yTree.elements = []
         A11yTree.lookup = {}
