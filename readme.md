@@ -1,4 +1,4 @@
-# Watercolor
+<h1 align="center">Watercolor</h1>
 
 <p align="center">
   <img src="assets/watercolor-logo.png" alt="Watercolor Logo" width="30%">
