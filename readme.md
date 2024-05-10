@@ -1,9 +1,8 @@
 <h1 align="center">Watercolor</h1>
 
 <p align="center">
-  <img src="assets/wide.png" alt="Watercolor Logo" width="100%">
-
-  <!-- <img src="assets/watercolor-logo.png" alt="Watercolor Logo" width="30%"> -->
+  <!-- <img src="assets/wide.png" alt="Watercolor Logo" width="100%"> -->
+  <img src="assets/watercolor-logo.png" alt="Watercolor Logo" width="30%">
 </p>
 
 ## Setup
