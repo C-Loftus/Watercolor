@@ -1,26 +1,19 @@
-#!/usr/bin/python
+
 import pyatspi
 import json
 import os
 import logging
-
-
-try:
-    os.remove("atspi_log.txt")
-except:
-    pass
-
+ 
 logging.basicConfig(filename="atspi_log.txt",
-                    filemode='a',
-                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                    datefmt='%H:%M:%S',
-                    level=logging.DEBUG)
+                        filemode='a',
+                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        datefmt='%H:%M:%S',
+                        level=logging.DEBUG)
 
 logging.info("Running Watercolor")
 
-logger = logging.getLogger('Watercolor')
+logger = logging.getLogger('Watercolor') 
 
- 
 class Desktop():
    
     @staticmethod
@@ -101,7 +94,7 @@ class A11yTree():
         if len(A11yTree.elements) == 0 and event.type == pyatspi.EventType('focus'):
             return
 
-        print(f"Created a tree with element count = {len(A11yTree.elements)}")
+        print(f"Dumped tree with {len(A11yTree.elements)} elements")
         
         try:
             os.remove('/tmp/a11y_tree.json')
@@ -113,7 +106,3 @@ class A11yTree():
 
 
 
-for event in ["window:activate", "window:create", "window:deactivate", "window:destroy", "window:maximize", "window:minimize", "window:move", "focus", "object:visible-data-changed"]:
-  pyatspi.Registry.registerEventListener(A11yTree.dump, event)
-
-pyatspi.Registry.start()        

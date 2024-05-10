@@ -7,7 +7,7 @@ This repo has an atspi server that gets a11y element names and positions, and th
 1. Clone this repo into your user directory
 2. Install `python3-pyatspi` (may be named different depending on your package manager)
 3. Run `make run` to run the at-spi server.
-   1. The server can also be ran within your user directory since the [.create_coords.py](atspi-server/.create_coords.py) is named with a `.` at the start so it is ignored by Talon
+   1. The server can also be ran within your user directory since the [.create_coords.py](.atspi-server/create_coords.py) is named with a `.` at the start so it is ignored by Talon
 4. Launch Talon, it should paint every element with a hat
 
 ## Notes / Caveats

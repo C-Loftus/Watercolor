@@ -1,1 +1,3 @@
-atspi_log.txt
+*log.txt
+*.log
+__pycache__

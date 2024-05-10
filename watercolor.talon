@@ -3,5 +3,5 @@ os: linux
 # and tag: browser
 -
 
-color toggle:
-    user.toggle_atspi_hats()
+(watercolor | color) toggle:
+    user.watercolor_toggle_hats()

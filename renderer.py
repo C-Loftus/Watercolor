@@ -8,7 +8,6 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon import skia
 from talon.skia.imagefilter import ImageFilter
 import itertools
-from talon import Module
 from typing import ClassVar
 
 alphabet = [''.join(comb) for comb in itertools.combinations('ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789', 4)]
@@ -24,7 +23,7 @@ def get_color() -> str:
     return f"{BACKGROUND_COLOR}{color_alpha}"
 
 
-class A11yTreeHatsState:
+class WatercolorState:
     enabled: ClassVar[bool] = False
     debug: ClassVar[bool] = False
 
@@ -33,7 +32,7 @@ class A11yElement(TypedDict):
     x: int
     y: int
 
-def on_draw(c: SkiaCanvas):
+def _on_draw(c: SkiaCanvas):
 
     # c.paint.imagefilter = ImageFilter.drop_shadow(1, 1, 1, 1, color_gradient)
 
@@ -58,6 +57,7 @@ def on_draw(c: SkiaCanvas):
 
 class ScreenLabels():
     
+
     X, Y, TEXT = int, int, str
     points: ClassVar[list[tuple[X, Y, TEXT]]] = [] # type: ignore
     canvas: ClassVar[Canvas] = None
@@ -66,7 +66,7 @@ class ScreenLabels():
     def clear(cls):
         if cls.canvas:
             cls.canvas.close()
-            cls.canvas.unregister("draw", on_draw)
+            cls.canvas.unregister("draw", _on_draw)
             cls.canvas = None
         
         cls.points = []
@@ -89,7 +89,7 @@ class ScreenLabels():
         cls.canvas.focused = False
         cls.canvas.cursor_visible = True
 
-        cls.canvas.register("draw", on_draw)
+        cls.canvas.register("draw", _on_draw)
         cls.canvas.freeze()
 
 
@@ -104,10 +104,9 @@ class A11yTree():
         with open(cls.ipc_path) as f:
             return json.load(f)
 
-
 @resource.watch(A11yTree.ipc_path)
 def paintTree(_):
-    if not A11yTreeHatsState.enabled:
+    if not WatercolorState.enabled:
         return
 
     elements: list[A11yElement] = A11yTree.getElements()
@@ -117,24 +116,4 @@ def paintTree(_):
         ScreenLabels.add(element["x"], element["y"], element["name"])
 
     ScreenLabels.render()
-
-mod = Module()
-
-
-@mod.action_class
-class Actions:
-    def toggle_atspi_hats():
-        """Toggle showing hats over every a11y element each time the screen state changes"""
-
-        if A11yTreeHatsState.enabled:
-            ScreenLabels.clear()
-            A11yTreeHatsState.enabled = False
-        else:
-            paintTree(None)
-            A11yTreeHatsState.enabled = True
-            
-    def toggle_atspi_debug():
-        """Toggle showing the debug hats over every a11y element each time the screen state changes"""
-
-        A11yTreeHatsState.debug = not A11yTreeHatsState.debug
 
