@@ -7,13 +7,13 @@ from create_coords import A11yTree
 def main():
 
     # Clean up old logs and ipc files
-    for file in ["atspi_log.txt", "/tmp/a11y_tree.json", "/tmp/watercolor-at-spi-server.sock"]:
+    for file in ["atspi_log.txt", "/tmp/a11y_tree.json", "/tmp/watercolor-at-spi-server.sock", "talon_server_error.log"]:
         if os.path.exists(file):
             os.unlink(file)
 
     try:
         server = IPC_Server()
-        server_thread = threading.Thread(target=server.create_server)
+        server_thread = threading.Thread(target=server.listen)
         server_thread.start()
 
 

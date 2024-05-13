@@ -5,12 +5,10 @@ import time
 import traceback
 from datetime import datetime
 from typing import Optional
-from .types import ResponseSchema, StatusResult, Mutex
+from custom_types import ResponseSchema, StatusResult
+import multiprocessing
 
 SOCKET_PATH = "/tmp/watercolor-at-spi-server.sock"
-
-valid_commands: list[str] = ["click"]
-
 
 # Process a command, return the command and result as well as the retrieved value, if applicable
 # Yes this is a big if/else block, but it's the most efficient way to handle the commands
@@ -18,71 +16,81 @@ def handle_command(command: str):
     pass
 
 
+# Singleton class for handling IPC
 class IPC_Server:
 
     running = False
-     
-    server_socket: Mutex[Optional[socket.socket]] = Mutex(None)
-    client_socket: Mutex[Optional[socket.socket]] = Mutex(None)
+    server_socket: socket.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    client_socket: Optional[socket.socket] = None
+    _client_lock = multiprocessing.Lock() 
+    _server_lock = multiprocessing.Lock() 
 
-    def handle_client(self):
+
+    @classmethod
+    def handle_client(cls):
             
-        with self.client_socket.lock() as client_socket:
-            data = client_socket.recv(1024)
+        with cls._client_lock:
 
-        response = ResponseSchema.generate()
+            data = cls.client_socket.recv(1024)
 
-        try:
-            messages = json.loads(data.decode().strip())
+            response = ResponseSchema.generate()
 
-            for message in messages:
-                command, value, result = handle_command(message)
-                response["processedCommands"].append(command)
-                response["returnedValues"].append(value)
-                # We can't pickle the StatusResult enum, so we have to convert it to a string
-                response["statusResults"].append(result.value)
+            try:
+                messages = json.loads(data.decode().strip())
 
-        except json.JSONDecodeError as e:
-            print(f"RECEIVED INVALID JSON FROM TALON: {e}")
-            response["statusResults"] = [StatusResult.JSON_ENCODE_ERROR.value]
+                for message in messages:
+                    command, value, result = handle_command(message)
+                    response["processedCommands"].append(command)
+                    response["returnedValues"].append(value)
+                    # We can't pickle the StatusResult enum, so we have to convert it to a string
+                    response["statusResults"].append(result.value)
 
-        finally:
-            with self.client_socket.lock() as client_socket:
-                client_socket.sendall(json.dumps(response).encode("utf-8"))
+            except json.JSONDecodeError as e:
+                print(f"RECEIVED INVALID JSON FROM TALON: {e}")
+                response["statusResults"] = [StatusResult.JSON_ENCODE_ERROR.value]
 
-    def create_server(self):
-        self.server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            finally:
+                if cls.client_socket.fileno() != -1:
+                    cls.client_socket.sendall(json.dumps(response).encode("utf-8"))
+
+
+    @classmethod
+    def listen(cls):
         
         try:
-            self.server_socket.bind(SOCKET_PATH)
+            cls.server_socket.bind(SOCKET_PATH)
         except OSError as e:
-            print(f"Failed to bind {SOCKET_PATH}: {e}")
-            self.stop()
+            print(f"Failed to bind to {SOCKET_PATH}: {e}")
+            cls.stop()
             return
 
-        self.server_socket.listen(1)
+        cls.server_socket.listen(1)
         # Need a time short enough that we can reboot NVDA and the old socket will be closed and won't interfere
-        self.server_socket.settimeout(0.5)
-        print(f"TALON SERVER SERVING ON {self.server_socket.getsockname()}")
+        cls.server_socket.settimeout(0.5)
+        print(f"TALON SERVER SERVING ON {cls.server_socket.getsockname()}")
 
-        self.running = True
+        cls.running = True
 
-        while self.running:
+        while cls.running:
             try:
-                # If it was closed from another thread, we want to break out of the loop
-                if not self.server_socket:
-                    break
+                
+                # make this atomic so we exit if there is an update after checking
+                with cls._server_lock:
+                    if cls.server_socket and cls.server_socket.fileno() != -1:
+                        tmp_socket, _ = cls.server_socket.accept()
+                        cls.client_socket = tmp_socket
+                        cls.client_socket.settimeout(0.3)
 
-                client_socket, _ = self.server_socket.accept()
-                self.client_socket = client_socket
-                self.client_socket.settimeout(0.3)
-                self.handle_client(self.client_socket)
+                        if not cls.running:
+                            break
+
+                        cls.handle_client()
             # If the socket times out, we just want to keep looping
             except socket.timeout:
                 pass
             except Exception as e:
                 print(f"TALON SERVER CRASH: {e}")
-                self.stop()
+                cls.stop()
                 with open(
                     "talon_server_error.log",
                     "a",
@@ -91,25 +99,28 @@ class IPC_Server:
                         f"\nERROR AT {datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')}: {e}"
                     )
                     f.write(f"\n{traceback.format_exc()}")
-                    f.write(f"\nINTERNAL STATE: {self.__dict__}\n")
+                    f.write(f"\nINTERNAL STATE: {cls.__dict__}\n")
                 break
             finally:
-                with self.client_socket.lock() as client_socket:
-                    if client_socket:
-                        client_socket.close()
+                with cls._client_lock:
+                    if cls.client_socket and cls.client_socket.fileno() != -1:
+                        cls.client_socket.close()
 
-    def stop(self):
+    @classmethod
+    def stop(cls):
 
-        with self.server_socket.lock() as server_socket:
-            self.running = False
-            if server_socket:
-                server_socket.close()
+        print("Waiting for client to shut down")
+        with cls._client_lock:
+            print("Shutting down client")
+            if cls.client_socket and cls.client_socket.fileno() != -1:
+                cls.client_socket.close()
+        
+        print("Waiting for server to shut down")
+        with cls._server_lock:
+            print("Shutting down server")
+            cls.running = False
+            if cls.server_socket.fileno() != -1:
+                cls.server_socket.close()
 
-        with self.client_socket.lock() as client_socket:
-            if client_socket:
-                client_socket.close()
-
-        if os.path.exists(SOCKET_PATH):
-            os.remove(SOCKET_PATH)
         print("TALON SERVER STOPPED")
 
