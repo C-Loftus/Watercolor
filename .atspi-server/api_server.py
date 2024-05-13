@@ -5,16 +5,13 @@ import time
 import traceback
 from datetime import datetime
 from typing import Optional
-from custom_types import ResponseSchema, StatusResult
+from custom_types import ResponseSchema, StatusResult, ValidCommands
 import multiprocessing
 
 SOCKET_PATH = "/tmp/watercolor-at-spi-server.sock"
 
-# Process a command, return the command and result as well as the retrieved value, if applicable
-# Yes this is a big if/else block, but it's the most efficient way to handle the commands
-def handle_command(command: str):
-    pass
-
+def handle_command(command: ValidCommands):
+    print(f"RECEIVED COMMAND: {command}")
 
 # Singleton class for handling IPC
 class IPC_Server:

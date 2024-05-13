@@ -1,7 +1,5 @@
 import enum
 from multiprocessing import Lock
-import contextlib
-from typing import ContextManager, Generic, TypeVar
 
 class ResponseSchema:
     def __init__(self):
@@ -19,3 +17,8 @@ class StatusResult(enum.Enum):
     INVALID_COMMAND_ERROR = "commandError"
     RUNTIME_ERROR = "runtimeError"
     JSON_ENCODE_ERROR = "jsonEncodeError"
+
+
+class ValidCommands(enum.Enum):
+    FOCUS = "focus"
+    CLICK = "click"
