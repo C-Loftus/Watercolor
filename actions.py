@@ -12,13 +12,6 @@ os: linux
 mod.list("watercolor_hats", desc="The active hats over every a11y element")
 
 
-def _construct_hat_list():
-    ctx.lists["user.watercolor_hats"] = {
-        ScreenLabels.points[1]
-    }
-
-
-
 @mod.action_class
 class Actions:
     def watercolor_toggle_hats():

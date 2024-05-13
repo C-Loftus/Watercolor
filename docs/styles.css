@@ -1,52 +1,74 @@
+/* Default style for body */
 body {
-    font-family: "Ubuntu mono";
-    margin-left: 10%;
-    margin-right: 10%;
-    padding: 0;
-    background: linear-gradient(to bottom right, #ffc3a0, #ffafbd, #add8e6, #ffb6c1);
-    background-repeat: no-repeat;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+  font-family: "Ubuntu mono";
+  margin: 0;
+  padding: 0;
+  color: #2b2b2bef;
+  background: linear-gradient(#809bce, transparent),
+    linear-gradient(to top left, #ffafbd, transparent),
+    linear-gradient(to top right, #c1dec8, transparent);
+  background-blend-mode: screen;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Media query for desktop devices */
+@media only screen and (min-width: 769px) {
+  body {
+    margin-left: 20%;
+    margin-right: 20%;
+  }
 }
 
 .header {
-    background: linear-gradient(to right, #ffc3a0, #ffafbd);
-    padding: 20px;
-    text-align: center;
-    font-size: 24px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    opacity: 0.9;
+  padding: 20px;
+  position: relative;
+  text-align: center;
+  font-size: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0);
 }
 
 .content {
-    padding: 20px;
-    flex-grow: 1;
+  padding: 20px;
+  flex-grow: 1;
 }
 
 .section {
-    border-radius: 10px;
-    margin-bottom: 20px;
-    padding: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    opacity: 0.9;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .section h2 {
-    font-size: 20px;
-    margin-top: 0;
+  font-size: 20px;
+  margin-top: 0;
 }
 
 .section p {
-    color: #333;
-    line-height: 1.6;
+  color: #333;
+  line-height: 1.6;
 }
 
 .footer {
-    background: linear-gradient(to right, #f2f2f2, #cfd9df);
-    padding: 20px;
-    text-align: center;
-    font-size: 14px;
-    color: #333;
-    opacity: 0.9;
+  background: transparent; /* Set background to transparent */
+  padding: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #333;
+  opacity: 1; /* Ensure full opacity for text */
+}
+
+.header img {
+  position: absolute;
+  top: calc(100% - 60px); /* Position the image slightly below the text */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.header h1 {
+  text-shadow: 4px 5px 4px #809bce; /* Adjust the shadow values as needed */
 }

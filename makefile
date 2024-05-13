@@ -4,4 +4,4 @@ install:
 
 .PHONY: run
 run:
-	/usr/bin/python3 .atspi-server/create_coords.py
+	/usr/bin/python3 .atspi-server/main.py

@@ -1,29 +1,13 @@
-import enum
 import json
 import os
 import socket
 import time
 import traceback
 from datetime import datetime
+from typing import Optional
+from .types import ResponseSchema, StatusResult, Mutex
 
 SOCKET_PATH = "/tmp/watercolor-at-spi-server.sock"
-
-class ResponseSchema:
-    def __init__(self):
-        self.processedCommands = []
-        self.returnedValues = []
-        self.statusResults = []
-
-    def generate():
-        return {"processedCommands": [], "returnedValues": [], "statusResults": []}
-
-
-class StatusResult(enum.Enum):
-    SUCCESS = "success"
-    INTERNAL_SERVER_ERROR = "serverError"
-    INVALID_COMMAND_ERROR = "commandError"
-    RUNTIME_ERROR = "runtimeError"
-    JSON_ENCODE_ERROR = "jsonEncodeError"
 
 valid_commands: list[str] = ["click"]
 
@@ -35,12 +19,16 @@ def handle_command(command: str):
 
 
 class IPC_Server:
-    server_socket = None
-    running = False
-    client_socket = None
 
-    def handle_client(self, client_socket: socket.socket):
-        data = client_socket.recv(1024)
+    running = False
+     
+    server_socket: Mutex[Optional[socket.socket]] = Mutex(None)
+    client_socket: Mutex[Optional[socket.socket]] = Mutex(None)
+
+    def handle_client(self):
+            
+        with self.client_socket.lock() as client_socket:
+            data = client_socket.recv(1024)
 
         response = ResponseSchema.generate()
 
@@ -59,7 +47,8 @@ class IPC_Server:
             response["statusResults"] = [StatusResult.JSON_ENCODE_ERROR.value]
 
         finally:
-            client_socket.sendall(json.dumps(response).encode("utf-8"))
+            with self.client_socket.lock() as client_socket:
+                client_socket.sendall(json.dumps(response).encode("utf-8"))
 
     def create_server(self):
         self.server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -105,16 +94,21 @@ class IPC_Server:
                     f.write(f"\nINTERNAL STATE: {self.__dict__}\n")
                 break
             finally:
-                # Called no matter what even after a break
-                if self.client_socket:
-                    self.client_socket.close()
+                with self.client_socket.lock() as client_socket:
+                    if client_socket:
+                        client_socket.close()
 
     def stop(self):
-        self.running = False
-        if self.server_socket:
-            self.server_socket.close()
-        if self.client_socket:
-            self.client_socket.close()
+
+        with self.server_socket.lock() as server_socket:
+            self.running = False
+            if server_socket:
+                server_socket.close()
+
+        with self.client_socket.lock() as client_socket:
+            if client_socket:
+                client_socket.close()
+
         if os.path.exists(SOCKET_PATH):
             os.remove(SOCKET_PATH)
         print("TALON SERVER STOPPED")

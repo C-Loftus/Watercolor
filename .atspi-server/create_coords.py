@@ -26,32 +26,40 @@ class Desktop():
                     return window
                 
         else:
-            raise RuntimeError("No active window found")
+            print("No active window found")
 
 class A11yTree():
     
     elements = []
-    lookup = {}
+    _point_lookup = {}
+    _id_lookup = {}
+    
 
     @staticmethod
-    def _add_element(name, x, y): 
+    def _add_element(name, id, x, y): 
         A11yTree.elements.append({"name": name, "x": x, "y": y})
-        A11yTree.lookup[(x, y)] = True
+        A11yTree._point_lookup[(x, y)] = True
+        A11yTree._id_lookup[id] = True
 
     def point_exists(x, y):
-        return A11yTree.lookup.get((x, y), False)
+        return A11yTree._point_lookup.get((x, y), False)
+    
+    def id_exists(id):
+        return A11yTree._id_lookup.get(id, False)
       
     @staticmethod
     def _create(root):
         if not root: return
 
         try:
-            for tree in root: 
-                if not tree: continue
+            
+            for accessible in root: 
+                accessible: pyatspi.Accessible
+                if not accessible: continue
 
-                point = tree.get_position(pyatspi.XY_SCREEN)
-                states = tree.get_state_set() 
-                logging.info(f"States for {tree}: {list(states.get_states())}")
+                point = accessible.get_position(pyatspi.XY_SCREEN)
+                states = accessible.get_state_set() 
+                logging.info(f"States for {accessible}: {list(states.get_states())}")
                 # https://docs.gtk.org/atspi2/enum.StateType.html
                  
                 visible = states.contains(pyatspi.STATE_VISIBLE)
@@ -60,19 +68,27 @@ class A11yTree():
                 showing = states.contains(pyatspi.STATE_SHOWING)
 
                 if visible and showing and (sensitive or focusable):
+                    name = accessible.get_name() 
+                    id = accessible.get_accessible_id()
                     x = point.x
                     y = point.y
-                    name = tree.get_name() 
 
                     if  (x > -2000 and y > -2000) and not A11yTree.point_exists(x, y) and  name != None:
                         if name != "":
-                            A11yTree._add_element(name, x, y)
+                            A11yTree._add_element(name,id, x, y)
                             
-                A11yTree._create(tree)
+                A11yTree._create(accessible)
                
+
         except Exception as e:
             logging.error("Error skipping tree creation due to: " + str(e))
             return
+        
+    @classmethod
+    def reset(cls):
+        cls.elements = []
+        cls._point_lookup = {}
+        cls._id_lookup = {}
       
     @staticmethod
     def dump(event):
@@ -85,9 +101,7 @@ class A11yTree():
         
         root = Desktop.getRoot()
    
-                    
-        A11yTree.elements = []
-        A11yTree.lookup = {}
+        A11yTree.reset()
         A11yTree._create(root)
 
         # don't regenerate the hats if Firefox performed a psuedo focus where nothing actually changed on the screen

@@ -1,10 +1,12 @@
 import pyatspi.registry
-from server import IPC_Server
+from api_server import IPC_Server
 import threading, os
 import pyatspi
 from create_coords import A11yTree
 
 def main():
+
+    # Clean up old logs and ipc files
     for file in ["atspi_log.txt", "/tmp/a11y_tree.json", "/tmp/watercolor-at-spi-server.sock"]:
         if os.path.exists(file):
             os.unlink(file)

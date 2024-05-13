@@ -1,4 +1,4 @@
-from talon import resource
+from talon import resource, Context
 import pathlib, os, json
 from typing import TypedDict
 from talon.canvas import Canvas
@@ -17,7 +17,8 @@ BACKGROUND_COLOR = "7aa2f7"
 HAT_RADIUS = 14
 PERCENT_TRANSPARENCY = 0.5
 
-    
+ctx = Context()
+
 def get_color() -> str:
     color_alpha = f"{(int((1- PERCENT_TRANSPARENCY) * 255)):02x}"
     return f"{BACKGROUND_COLOR}{color_alpha}"
@@ -58,8 +59,8 @@ def _on_draw(c: SkiaCanvas):
 class ScreenLabels():
     
 
-    X, Y, TEXT = int, int, str
-    points: ClassVar[list[tuple[X, Y, TEXT]]] = [] # type: ignore
+    NAME, ID, X, Y = str, str, int, int
+    points: ClassVar[list[tuple[NAME, ID, X, Y]]] = [] # type: ignore
     canvas: ClassVar[Canvas] = None
 
     @classmethod
@@ -106,8 +107,17 @@ class A11yTree():
 
 @resource.watch(A11yTree.ipc_path)
 def paintTree(_):
+
+    if not os.path.exists(A11yTree.ipc_path):
+        raise Exception(f"File {A11yTree.ipc_path=} was updated but now does not exist")
+
     if not WatercolorState.enabled:
         return
+    
+    # Map a name you can speak to the unique ID of that element
+    ctx.lists["user.watercolor_hats"] = {
+        name: unique_id for (name, unique_id, _, _, ) in ScreenLabels.points
+    }
 
     elements: list[A11yElement] = A11yTree.getElements()
     ScreenLabels.clear()
