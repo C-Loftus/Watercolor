@@ -1,4 +1,5 @@
 
+import gi.repository
 import pyatspi
 import json
 import os
@@ -6,7 +7,11 @@ import logging
 import dataclasses
 from typing import ClassVar
 import base64
-from ..shared import config
+import sys
+sys.path.append(".") # Adds higher directory to python modules path.
+import shared.config as config
+import gi
+
 
 class Desktop():
    
@@ -107,8 +112,11 @@ class A11yTree():
         root = Desktop.getRoot()
    
         A11yTree.reset()
-        A11yTree._create(root)
-
+        try:
+            A11yTree._create(root)
+        except gi.repository.GLib.GError as e:
+            logging.error(e)
+            
         # don't regenerate the hats if Firefox performed a psuedo focus where nothing actually changed on the screen
         if len(A11yTree._elements) == 0 and event.type == pyatspi.EventType('focus'):
             return

@@ -1,9 +1,10 @@
 import pyatspi.registry
+
 from api_server import IPC_Server
 import threading, os
 import pyatspi
 from create_coords import A11yTree
-from logger import init_logger
+from lib import init_logger
 
 def main():
 

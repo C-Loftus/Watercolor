@@ -1,10 +1,8 @@
-import ipaddress
 import json, enum
-import os
 import socket
 import threading
-from typing import Optional, Tuple, TypedDict, assert_never
-from ..shared.types import WatercolorCommand, ServerStatusResult, ServerResponse
+from typing import Optional, TypedDict, assert_never
+from ..shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse
 from ..shared import config
 
 from talon import Context, Module, actions, cron, settings
@@ -22,15 +20,15 @@ class ClientResponse(enum.Enum):
 
 class ResponseBundle(TypedDict):
     client: ClientResponse
-    server: ServerResponse
+    # nullable if client fails before connecting to server 
+    server: Optional[ServerResponse]
 
 def handle_ipc_result(
     client_response: ClientResponse,
     server_response: ServerResponse,
 ):
     """
-    Sanitize the response and return just the commands and their return values
-    if present
+    Sanitize the response
     """
 
     match client_response:
@@ -55,10 +53,10 @@ def handle_ipc_result(
             pass
         case ServerStatusResult.INVALID_COMMAND_ERROR:
             cmd = server_response["command"]
-            raise ValueError(f"Invalid command '{cmd}' sent to screenreader")
+            raise ValueError(f"Invalid command '{cmd}' sent to atspi server")
         case ServerStatusResult.JSON_ENCODE_ERROR:
             raise ValueError(
-                "Invalid JSON payload sent from client to screenreader"
+                "Invalid JSON payload sent from client to atspi server"
             )
         case (
             ServerStatusResult.INTERNAL_SERVER_ERROR
@@ -71,9 +69,9 @@ def handle_ipc_result(
 
 @mod.action_class
 class ATSPIClientActions:
-    def send_ipc_command(
+    def send_watercolor_command(
         command: WatercolorCommand,
-    ) -> Optional[any]:
+    ) :
         """Sends a single command to the screenreader"""
 
         if not isinstance(command, WatercolorCommand):
@@ -99,13 +97,10 @@ class ATSPIClientActions:
                 # We don't want to execute further commands until we get a response
                 raw_data = sock.recv(1024)
 
-                raw_response: ServerResponse = json.loads(raw_data.decode("utf-8"))
-                raw_response["statusResults"] = [
-                    ServerStatusResult.generate_from(status)
-                    for status in raw_response["statusResults"]
-                ]
+                server_response: ServerResponse = json.loads(raw_data.decode("utf-8"))
+
                 response["client"] = ClientResponse.SUCCESS
-                response["server"] = raw_response
+                response["server"] = ServerStatusResult.generate_from(server_response["result"])
             except KeyError as enum_decode_error:
                 print("Error decoding enum", enum_decode_error, response)
                 response["client"] = ClientResponse.GENERAL_ERROR

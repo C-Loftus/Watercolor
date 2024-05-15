@@ -1,4 +1,4 @@
-from Watercolor.client.types import A11yElement, WatercolorState
+from Watercolor.client.client_types import A11yElement, WatercolorState
 from talon import resource, Context
 import pathlib, os, json
 from typing import TypedDict

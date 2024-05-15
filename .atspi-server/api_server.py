@@ -5,8 +5,10 @@ import traceback
 from datetime import datetime
 from typing import Optional
 from lib import DebuggableLock
-from ..shared import config
-from shared.types import ServerResponse, WatercolorCommand, ServerStatusResult
+import sys
+sys.path.append(".") # Adds higher directory to python modules path.
+from shared import config
+from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse
 
 def handle_command(command: WatercolorCommand):
     print(f"RECEIVED COMMAND: {command}")
