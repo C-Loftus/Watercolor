@@ -13,44 +13,47 @@ from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerRes
 def handle_command(command: WatercolorCommand):
     print(f"RECEIVED COMMAND: {command}")
 
+    return command, ServerStatusResult.SUCCESS
+
 # Singleton class for handling IPC
 class IPC_Server:
 
     running = False
     server_socket: socket.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     client_socket: Optional[socket.socket] = None
-    _client_lock = DebuggableLock()
-    _server_lock = DebuggableLock() 
+    # _client_lock = DebuggableLock("Client")
+    # _server_lock = DebuggableLock("Server") 
 
 
     @classmethod
     def handle_client(cls):
-        with cls._client_lock:
 
-            data = cls.client_socket.recv(1024)
+        data = cls.client_socket.recv(1024)
+
+        response_for_client: ServerResponse = {
+            "command": None,
+            "result": ServerStatusResult.RUNTIME_ERROR.value
+        }
+
+        try:
+            client_request = json.loads(data.decode().strip())
+            command, result = handle_command(client_request)
+
 
             response_for_client: ServerResponse = {
-                "command": None,
-                "result": ServerStatusResult.RUNTIME_ERROR.value
+            "command": command,
+            "result": result.value
             }
 
-            try:
-                client_request = json.loads(data.decode().strip())
-                command, result = handle_command(client_request)
-                response_for_client: ServerResponse = {
-                "command": command,
-                "result": result.value
-                }
+        except json.JSONDecodeError as e:
+            print(f"RECEIVED INVALID JSON FROM CLIENT: {e}")
+            response_for_client: ServerResponse = {
+            "result": ServerStatusResult.JSON_ENCODE_ERROR.value
+            }
 
-            except json.JSONDecodeError as e:
-                print(f"RECEIVED INVALID JSON FROM CLIENT: {e}")
-                response_for_client: ServerResponse = {
-                "result": ServerStatusResult.JSON_ENCODE_ERROR.value
-                }
-
-            finally:
-                if cls.client_socket.fileno() != -1:
-                    cls.client_socket.sendall(json.dumps(response_for_client).encode("utf-8"))
+        finally:
+            if cls.client_socket.fileno() != -1:
+                cls.client_socket.sendall(json.dumps(response_for_client).encode("utf-8"))
 
 
     @classmethod
@@ -74,9 +77,13 @@ class IPC_Server:
             try:
                 
                 # make this atomic so we exit if there is an update after checking
-                cls._server_lock.acquire()
                 if cls.server_socket and cls.server_socket.fileno() != -1:
-                    tmp_socket, _ = cls.server_socket.accept()
+                    try:
+                        tmp_socket, _ = cls.server_socket.accept()
+                    # catch when we close the server from the other thread, but still have this open socket in another thread
+                    except OSError:
+                        continue
+
                     cls.client_socket = tmp_socket
                     cls.client_socket.settimeout(0.3)
 
@@ -102,32 +109,24 @@ class IPC_Server:
                     f.write(f"\nINTERNAL STATE: {cls.__dict__}\n")
                 break
             finally:
-                cls._server_lock.release()
-                with cls._client_lock:
-                    if cls.client_socket and cls.client_socket.fileno() != -1:
-                        cls.client_socket.close()
+                if cls.client_socket and cls.client_socket.fileno() != -1:
+                    cls.client_socket.close()
 
     @classmethod
     def stop(cls):
 
         # Don't even try to hold the lock if everything has already been cleaned up from the other thread
         if not cls.running:
-            if not cls.client_socket and cls.client_socket.fileno() == -1 and \
-                not cls.server_socket and cls.server_socket.fileno() == -1:
+            if not cls.client_socket or cls.client_socket.fileno() == -1 and \
+                not cls.server_socket or cls.server_socket.fileno() == -1:
                 return
 
-        print("Waiting for client to shut down")
-        with cls._client_lock:
-            print("Shutting down client")
-            if cls.client_socket and cls.client_socket.fileno() != -1:
-                cls.client_socket.close()
+        if cls.client_socket and cls.client_socket.fileno() != -1:
+            cls.client_socket.close()
         
-        print("Waiting for server to shut down")
-        with cls._server_lock:
-            print("Shutting down server")
-            cls.running = False
-            if cls.server_socket.fileno() != -1:
-                cls.server_socket.close()
+        cls.running = False
+        if cls.server_socket.fileno() != -1:
+            cls.server_socket.close()
 
         print("TALON SERVER STOPPED")
 

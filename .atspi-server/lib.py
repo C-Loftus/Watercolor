@@ -11,23 +11,22 @@ import os
 class DebuggableLock:
 
     logger = logging.getLogger()
-    def __init__(self):
+    def __init__(self, lock_name: str):
         self.lock = threading.Lock()
+        self.name = lock_name
 
     def acquire(self, *args, **kwargs):
 
-        if os.getenv("DEBUG") == True:
-            calling_function = inspect.stack()[1].function
-            self.logger.lock_debug(f"Function '{calling_function}' is acquiring the lock.")
+        holding_thread = threading.current_thread().name
+        self.logger.lock_debug(f"Acquiring the {self.name} lock within thread: {holding_thread}.")
 
         self.lock.acquire(*args, **kwargs)
 
     def release(self, *args, **kwargs):
 
 
-        if os.getenv("DEBUG") == True:
-            calling_function = inspect.stack()[1].function
-            self.logger.lock_debug(f"Function '{calling_function}' is acquiring the lock.")
+        holding_thread = threading.current_thread().name
+        self.logger.lock_debug(f"Acquiring the {self.name} lock within thread: {holding_thread}.")
 
         self.lock.release(*args, **kwargs)
 
