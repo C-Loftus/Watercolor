@@ -26,6 +26,7 @@ class ResponseBundle(TypedDict):
 def handle_ipc_result(
     client_response: ClientResponse,
     server_response: ServerResponse,
+    command: WatercolorCommand,
 ):
     """
     Sanitize the response
@@ -45,15 +46,15 @@ def handle_ipc_result(
             # empty case for pyright exhaustiveness
             pass
 
-    cmd = server_response["command"]
-    match (server_response["result"]):
+
+    match (server_response):
 
         case ServerStatusResult.SUCCESS:
             # empty case is here for exhaustiveness
             pass
         case ServerStatusResult.INVALID_COMMAND_ERROR:
             cmd = server_response["command"]
-            raise ValueError(f"Invalid command '{cmd}' sent to atspi server")
+            raise ValueError(f"Invalid command '{command}' sent to atspi server")
         case ServerStatusResult.JSON_ENCODE_ERROR:
             raise ValueError(
                 "Invalid JSON payload sent from client to atspi server"
@@ -62,21 +63,25 @@ def handle_ipc_result(
             ServerStatusResult.INTERNAL_SERVER_ERROR
             | ServerStatusResult.RUNTIME_ERROR
         ) as error:
-            raise RuntimeError(f"{error} processing command '{cmd}'")
+            raise RuntimeError(f"Server {error.value} processing command '{command}'")
+        
+        case None:
+            raise RuntimeError(f"Client never connected to server for '{command}'")
         case _:
-            assert_never((server_response["result"], server_response["command"]))
+            assert_never((server_response, command))
 
 
 @mod.action_class
 class ATSPIClientActions:
     def send_watercolor_command(
-        command: WatercolorCommand,
+        command: str,
     ) :
         """Sends a single command to the screenreader"""
 
-        if not isinstance(command, WatercolorCommand):
-            raise ValueError(f"Commmand '{command}' is not a valid command to send to the atspi server")
+        if command != "click" and command != "focus":
+            raise ValueError(f"Invalid command '{command}' sent to atspi server")
 
+        
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(0.2)
         encoded = json.dumps(command).encode()
@@ -115,4 +120,4 @@ class ATSPIClientActions:
             finally:
                 sock.close()
 
-        handle_ipc_result(response["client"], response["server"])
+        handle_ipc_result(response["client"], response["server"], command)

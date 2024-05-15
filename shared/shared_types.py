@@ -1,5 +1,5 @@
 import enum
-from typing import TypedDict
+from typing import TypedDict, Literal
 
 class ServerStatusResult(enum.Enum):
     SUCCESS = "success"
@@ -16,9 +16,7 @@ class ServerStatusResult(enum.Enum):
         raise KeyError(f"Invalid status result: {value}")
 
 
-class WatercolorCommand(enum.Enum):
-    FOCUS = "focus"
-    CLICK = "click"
+WatercolorCommand = Literal["click", "focus"]
 
 
 class ServerResponse(TypedDict):

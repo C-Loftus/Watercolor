@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Optional
 from lib import DebuggableLock
 import sys
-sys.path.append(".") # Adds higher directory to python modules path.
+sys.path.append(".") # So we can import shared outside of the package
 from shared import config
 from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse
 
@@ -31,18 +31,22 @@ class IPC_Server:
 
             response_for_client: ServerResponse = {
                 "command": None,
-                "result": ServerStatusResult.RUNTIME_ERROR
+                "result": ServerStatusResult.RUNTIME_ERROR.value
             }
 
             try:
                 client_request = json.loads(data.decode().strip())
                 command, result = handle_command(client_request)
-                response_for_client["command"] = command
-                response_for_client["result"] = result.value
+                response_for_client: ServerResponse = {
+                "command": command,
+                "result": result.value
+                }
 
             except json.JSONDecodeError as e:
                 print(f"RECEIVED INVALID JSON FROM CLIENT: {e}")
-                response_for_client["result"] = [ServerStatusResult.JSON_ENCODE_ERROR.value]
+                response_for_client: ServerResponse = {
+                "result": ServerStatusResult.JSON_ENCODE_ERROR.value
+                }
 
             finally:
                 if cls.client_socket.fileno() != -1:
