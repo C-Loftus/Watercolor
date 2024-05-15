@@ -27,14 +27,13 @@ class ResponseBundle(TypedDict):
 def handle_ipc_result(
     client_response: ClientResponse,
     server_response: ServerStatusResult,
-) -> list[Tuple[WatercolorCommand, Optional[any]]]:
+):
     """
-    Sanitize the response from the screenreader server
-    and return just the commands and their return values
+    Sanitize the response and return just the commands and their return values
     if present
     """
 
-    match client_response, server_response:
+    match client_response:
         case (
             ClientResponse.NO_RESPONSE
             | ClientResponse.TIMED_OUT
@@ -45,31 +44,27 @@ def handle_ipc_result(
                 f"Clientside {error=} communicating with screenreader extension"
             )
         case (ClientResponse.SUCCESS, _):
-            # empty case is here for exhaustiveness
+            # empty case for pyright exhaustiveness
             pass
 
-   
-        server_response["processedCommands"],
-        server_response["returnedValues"],
-        server_response["statusResults"],
-        
-        match status:
-            case ServerStatusResult.SUCCESS:
-                # empty case is here for exhaustiveness
-                pass
-            case ServerStatusResult.INVALID_COMMAND_ERROR:
-                raise ValueError(f"Invalid command '{cmd}' sent to screenreader")
-            case ServerStatusResult.JSON_ENCODE_ERROR:
-                raise ValueError(
-                    "Invalid JSON payload sent from client to screenreader"
-                )
-            case (
-                ServerStatusResult.INTERNAL_SERVER_ERROR
-                | ServerStatusResult.RUNTIME_ERROR
-            ) as error:
-                raise RuntimeError(f"{error} processing command '{cmd}'")
-            case _:
-                assert_never((cmd, value, status))
+    match server_response:
+
+        case ServerStatusResult.SUCCESS:
+            # empty case is here for exhaustiveness
+            pass
+        case ServerStatusResult.INVALID_COMMAND_ERROR:
+            raise ValueError(f"Invalid command '{cmd}' sent to screenreader")
+        case ServerStatusResult.JSON_ENCODE_ERROR:
+            raise ValueError(
+                "Invalid JSON payload sent from client to screenreader"
+            )
+        case (
+            ServerStatusResult.INTERNAL_SERVER_ERROR
+            | ServerStatusResult.RUNTIME_ERROR
+        ) as error:
+            raise RuntimeError(f"{error} processing command '{cmd}'")
+        case _:
+            assert_never((cmd, value, status))
 
 
 
@@ -125,5 +120,4 @@ def handle_ipc_result(
             finally:
                 sock.close()
 
-        checked_result = handle_ipc_result(response["client"], response["server"])
-        return checked_result
+        handle_ipc_result(response["client"], response["server"])
