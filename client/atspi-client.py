@@ -4,8 +4,8 @@ import os
 import socket
 import threading
 from typing import Optional, Tuple, TypedDict, assert_never
-from .shared.types import WatercolorCommand, ServerStatusResult, ServerResponse
-from .shared import config
+from ..shared.types import WatercolorCommand, ServerStatusResult, ServerResponse
+from ..shared import config
 
 from talon import Context, Module, actions, cron, settings
 
@@ -26,7 +26,7 @@ class ResponseBundle(TypedDict):
 
 def handle_ipc_result(
     client_response: ClientResponse,
-    server_response: ServerStatusResult,
+    server_response: ServerResponse,
 ):
     """
     Sanitize the response and return just the commands and their return values
@@ -47,12 +47,14 @@ def handle_ipc_result(
             # empty case for pyright exhaustiveness
             pass
 
-    match server_response:
+    cmd = server_response["command"]
+    match (server_response["result"]):
 
         case ServerStatusResult.SUCCESS:
             # empty case is here for exhaustiveness
             pass
         case ServerStatusResult.INVALID_COMMAND_ERROR:
+            cmd = server_response["command"]
             raise ValueError(f"Invalid command '{cmd}' sent to screenreader")
         case ServerStatusResult.JSON_ENCODE_ERROR:
             raise ValueError(
@@ -64,13 +66,11 @@ def handle_ipc_result(
         ) as error:
             raise RuntimeError(f"{error} processing command '{cmd}'")
         case _:
-            assert_never((cmd, value, status))
+            assert_never((server_response["result"], server_response["command"]))
 
 
-
-
-
-
+@mod.action_class
+class ATSPIClientActions:
     def send_ipc_command(
         command: WatercolorCommand,
     ) -> Optional[any]:

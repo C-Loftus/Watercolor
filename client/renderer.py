@@ -1,3 +1,4 @@
+from Watercolor.client.types import A11yElement, WatercolorState
 from talon import resource, Context
 import pathlib, os, json
 from typing import TypedDict
@@ -22,16 +23,6 @@ ctx = Context()
 def get_color() -> str:
     color_alpha = f"{(int((1- PERCENT_TRANSPARENCY) * 255)):02x}"
     return f"{BACKGROUND_COLOR}{color_alpha}"
-
-
-class WatercolorState:
-    enabled: ClassVar[bool] = False
-    debug: ClassVar[bool] = False
-
-class A11yElement(TypedDict):
-    name: str
-    x: int
-    y: int
 
 def _on_draw(c: SkiaCanvas):
 
