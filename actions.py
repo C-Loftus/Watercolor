@@ -1,6 +1,6 @@
 from talon import Module, Context
 
-from .renderer import WatercolorState, ScreenLabels, paintTree
+from .renderer import WatercolorState, ScreenLabels, renderElementStyling
 
 mod = Module()
 ctx = Context()
@@ -21,7 +21,7 @@ class Actions:
             ScreenLabels.clear()
             WatercolorState.enabled = False
         else:
-            paintTree(None)
+            renderElementStyling(None)
             WatercolorState.enabled = True
             
     def watercolor_toggle_debug():

@@ -106,7 +106,7 @@ class A11yTree():
             return json.load(f)
 
 @resource.watch(A11yTree.ipc_path)
-def paintTree(_):
+def renderElementStyling(_):
 
     if not os.path.exists(A11yTree.ipc_path):
         raise Exception(f"File {A11yTree.ipc_path=} was updated but now does not exist")

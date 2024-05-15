@@ -1,15 +1,14 @@
 import json
-import os
 import socket
 import time
 import traceback
 from datetime import datetime
 from typing import Optional
-from custom_types import ResponseSchema, StatusResult, ValidCommands, DebuggableLock
+from lib import DebuggableLock
+from ..shared import config
+from shared.types import ServerResponse, WatercolorCommand, ServerStatusResult
 
-SOCKET_PATH = "/tmp/watercolor-at-spi-server.sock"
-
-def handle_command(command: ValidCommands):
+def handle_command(command: WatercolorCommand):
     print(f"RECEIVED COMMAND: {command}")
 
 # Singleton class for handling IPC
@@ -28,34 +27,33 @@ class IPC_Server:
 
             data = cls.client_socket.recv(1024)
 
-            response = ResponseSchema.generate()
+            response_for_client: ServerResponse = {
+                "command": None,
+                "result": ServerStatusResult.RUNTIME_ERROR
+            }
 
             try:
-                messages = json.loads(data.decode().strip())
-
-                for message in messages:
-                    command, value, result = handle_command(message)
-                    response["processedCommands"].append(command)
-                    response["returnedValues"].append(value)
-                    # We can't pickle the StatusResult enum, so we have to convert it to a string
-                    response["statusResults"].append(result.value)
+                client_request = json.loads(data.decode().strip())
+                command, result = handle_command(client_request)
+                response_for_client["command"] = command
+                response_for_client["result"] = result.value
 
             except json.JSONDecodeError as e:
-                print(f"RECEIVED INVALID JSON FROM TALON: {e}")
-                response["statusResults"] = [StatusResult.JSON_ENCODE_ERROR.value]
+                print(f"RECEIVED INVALID JSON FROM CLIENT: {e}")
+                response_for_client["result"] = [ServerStatusResult.JSON_ENCODE_ERROR.value]
 
             finally:
                 if cls.client_socket.fileno() != -1:
-                    cls.client_socket.sendall(json.dumps(response).encode("utf-8"))
+                    cls.client_socket.sendall(json.dumps(response_for_client).encode("utf-8"))
 
 
     @classmethod
     def listen(cls):
         
         try:
-            cls.server_socket.bind(SOCKET_PATH)
+            cls.server_socket.bind(config.SOCKET_PATH)
         except OSError as e:
-            print(f"Failed to bind to {SOCKET_PATH}: {e}")
+            print(f"Failed to bind to {config.SOCKET_PATH}: {e}")
             cls.stop()
             return
 

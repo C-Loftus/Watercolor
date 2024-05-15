@@ -6,6 +6,7 @@ import logging
 import dataclasses
 from typing import ClassVar
 import base64
+from ..shared import config
 
 class Desktop():
    
@@ -114,19 +115,21 @@ class A11yTree():
 
         
         try:
-            os.remove('/tmp/a11y_tree.json')
+            os.remove(config.TREE_OUTPUT_PATH)
         except:
-            logging.debug("Trying to remove /tmp/a11y_tree.json but it was already removed")
+            logging.debug(f"Trying to remove {config.TREE_OUTPUT_PATH} but it was already removed")
 
-        with open('/tmp/a11y_tree.json', 'w') as outfile:
+        with open(config.TREE_OUTPUT_PATH, 'w') as outfile:
 
             entire_tree_serialized = [
                 dataclasses.asdict(element) for element in A11yTree._elements]
             
-            b64_tree = base64.b64encode(json.dumps(entire_tree_serialized).encode('utf-8'))
+            # b64_tree = base64.b64encode(json.dumps(entire_tree_serialized).encode('utf-8'))
 
 
-            outfile.write(str(b64_tree))
+            # outfile.write(str(b64_tree))
+
+            json.dump(entire_tree_serialized, outfile)
 
         print(f"Dumped tree for {root} with {len(A11yTree._elements)} elements")
 
