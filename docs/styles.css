@@ -72,3 +72,19 @@ body {
 .header h1 {
   text-shadow: 4px 5px 4px #809bce; /* Adjust the shadow values as needed */
 }
+
+span {
+  display: inline-block;
+  padding: 0.5em;
+  background-color: rgba(0, 0, 0, 0.1); /* Adjust opacity as needed */
+  border-radius: 6px;
+  padding: 3px;
+}
+
+img.copy {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-left: 5px;
+  cursor: pointer;
+}

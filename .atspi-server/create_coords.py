@@ -3,16 +3,9 @@ import pyatspi
 import json
 import os
 import logging
- 
-logging.basicConfig(filename="atspi_log.txt",
-                        filemode='a',
-                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                        datefmt='%H:%M:%S',
-                        level=logging.DEBUG)
-
-logging.info("Running Watercolor")
-
-logger = logging.getLogger('Watercolor') 
+import dataclasses
+from typing import ClassVar
+import base64
 
 class Desktop():
    
@@ -21,74 +14,85 @@ class Desktop():
         desktop = pyatspi.Registry.getDesktop(0)
         for app in desktop:
             for window in app:
-                logging.info(f"States for {window}: {list(window.get_state_set().get_states())}")
+                logging.debug(f"States for {window}: {list(window.get_state_set().get_states())}")
                 if window.getState().contains(pyatspi.STATE_ACTIVE):
                     return window
                 
         else:
-            print("No active window found")
+            logging.warning(f"No active window found among {[app.get_name() for app in desktop]}")
+
+
+@dataclasses.dataclass
+class A11yElement():
+    name: str
+    x: int
+    y: int
+    role: str
+    pid: int
+    
+    # libatspi does not export a way to get a public unique id
+    # so we need to serialize the above attributes as a psuedo id
+    # id: str
 
 class A11yTree():
     
-    elements = []
-    _point_lookup = {}
-    _id_lookup = {}
-    
+    _elements: ClassVar[list[A11yElement]] = []
 
     @staticmethod
-    def _add_element(name, id, x, y): 
-        A11yTree.elements.append({"name": name, "x": x, "y": y})
-        A11yTree._point_lookup[(x, y)] = True
-        A11yTree._id_lookup[id] = True
-
-    def point_exists(x, y):
-        return A11yTree._point_lookup.get((x, y), False)
+    def _append_element(element: A11yElement): 
+        A11yTree._elements.append(element)
     
-    def id_exists(id):
-        return A11yTree._id_lookup.get(id, False)
+    @staticmethod
+    def element_exists(element: A11yElement):
+        return element in A11yTree._elements
       
     @staticmethod
     def _create(root):
         if not root: return
 
-        try:
+
+        for accessible in root: 
+            accessible: pyatspi.Accessible
+            if not accessible: continue
+
+            point = accessible.get_position(pyatspi.XY_SCREEN)
+            states = accessible.get_state_set() 
+            logging.debug(f"States for {accessible}: {list(states.get_states())}")
+            # https://docs.gtk.org/atspi2/enum.StateType.html
+                
+            visible = states.contains(pyatspi.STATE_VISIBLE)
+            sensitive = states.contains(pyatspi.STATE_SENSITIVE)
+            focusable = states.contains(pyatspi.STATE_FOCUSABLE)
+            showing = states.contains(pyatspi.STATE_SHOWING)
+
+
+            INTERACTABLE = visible and showing and (sensitive or focusable)
+
+            x = point.x
+            y = point.y
+            # parent_application = accessible.get_application().get_name()
+            pid = accessible.get_process_id()
+            role = accessible.get_role_name()
+            name = accessible.get_name() 
+            element = A11yElement(name, x, y, role, pid)
+
+            OFF_SCREEN = x < -2000 or y < -2000
+
+            UNLABELED = name == ""
+
+            EXISTS_ALREADY = A11yTree.element_exists(element)
+
+            if INTERACTABLE and not EXISTS_ALREADY and not OFF_SCREEN and not UNLABELED:
+                A11yTree._append_element(element)   
+
+            A11yTree._create(accessible)
             
-            for accessible in root: 
-                accessible: pyatspi.Accessible
-                if not accessible: continue
 
-                point = accessible.get_position(pyatspi.XY_SCREEN)
-                states = accessible.get_state_set() 
-                logging.info(f"States for {accessible}: {list(states.get_states())}")
-                # https://docs.gtk.org/atspi2/enum.StateType.html
-                 
-                visible = states.contains(pyatspi.STATE_VISIBLE)
-                sensitive = states.contains(pyatspi.STATE_SENSITIVE)
-                focusable = states.contains(pyatspi.STATE_FOCUSABLE)
-                showing = states.contains(pyatspi.STATE_SHOWING)
-
-                if visible and showing and (sensitive or focusable):
-                    name = accessible.get_name() 
-                    id = accessible.get_accessible_id()
-                    x = point.x
-                    y = point.y
-
-                    if  (x > -2000 and y > -2000) and not A11yTree.point_exists(x, y) and  name != None:
-                        if name != "":
-                            A11yTree._add_element(name,id, x, y)
-                            
-                A11yTree._create(accessible)
-               
-
-        except Exception as e:
-            logging.error("Error skipping tree creation due to: " + str(e))
-            return
+ 
         
     @classmethod
     def reset(cls):
-        cls.elements = []
-        cls._point_lookup = {}
-        cls._id_lookup = {}
+        cls._elements = []
       
     @staticmethod
     def dump(event):
@@ -105,10 +109,9 @@ class A11yTree():
         A11yTree._create(root)
 
         # don't regenerate the hats if Firefox performed a psuedo focus where nothing actually changed on the screen
-        if len(A11yTree.elements) == 0 and event.type == pyatspi.EventType('focus'):
+        if len(A11yTree._elements) == 0 and event.type == pyatspi.EventType('focus'):
             return
 
-        print(f"Dumped tree with {len(A11yTree.elements)} elements")
         
         try:
             os.remove('/tmp/a11y_tree.json')
@@ -116,7 +119,16 @@ class A11yTree():
             logging.debug("Trying to remove /tmp/a11y_tree.json but it was already removed")
 
         with open('/tmp/a11y_tree.json', 'w') as outfile:
-            json.dump(A11yTree.elements, outfile)
+
+            entire_tree_serialized = [
+                dataclasses.asdict(element) for element in A11yTree._elements]
+            
+            b64_tree = base64.b64encode(json.dumps(entire_tree_serialized).encode('utf-8'))
+
+
+            outfile.write(str(b64_tree))
+
+        print(f"Dumped tree for {root} with {len(A11yTree._elements)} elements")
 
 
 

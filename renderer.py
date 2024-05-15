@@ -74,10 +74,10 @@ class ScreenLabels():
         
     
     @classmethod
-    def add(cls, x, y, text):
+    def add(cls, name, id, x, y):
         text = alphabet[len(cls.points)] if not text else text
 
-        cls.points.append((x, y, text))
+        cls.points.append((name, id, x, y))
 
     @classmethod
     def render(cls):
@@ -123,7 +123,7 @@ def paintTree(_):
     ScreenLabels.clear()
 
     for element in elements:
-        ScreenLabels.add(element["x"], element["y"], element["name"])
+        ScreenLabels.add( element["name"], element["x"], element["y"])
 
     ScreenLabels.render()
 

@@ -3,6 +3,7 @@ from api_server import IPC_Server
 import threading, os
 import pyatspi
 from create_coords import A11yTree
+from logger import init_logger
 
 def main():
 
@@ -10,6 +11,8 @@ def main():
     for file in ["atspi_log.txt", "/tmp/a11y_tree.json", "/tmp/watercolor-at-spi-server.sock", "talon_server_error.log"]:
         if os.path.exists(file):
             os.unlink(file)
+
+    init_logger()
 
     try:
         server = IPC_Server()
