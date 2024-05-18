@@ -1,10 +1,13 @@
 /* Default style for body */
 body {
-  font-family: "Ubuntu mono";
+  font: "Work Sans", sans-serif;
   margin: 0;
   padding: 0;
-  color: #2b2b2bef;
+  /* color: #2b2b2bef; */
   background: linear-gradient(#809bce, transparent),
+    linear-gradient(to top left, #ffafbd, transparent),
+    linear-gradient(to top right, #c1dec8, transparent);
+  color: linear-gradient(#809bce, transparent),
     linear-gradient(to top left, #ffafbd, transparent),
     linear-gradient(to top right, #c1dec8, transparent);
   background-blend-mode: screen;
@@ -87,4 +90,28 @@ img.copy {
   height: 20px;
   margin-left: 5px;
   cursor: pointer;
+}
+
+h1 {
+  font-family: "Work Sans", sans-serif;
+  font-weight: 800;
+  font-size: 5em;
+  width: 6em;
+  line-height: 0.9em;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 1.5em;
+  margin-top: calc(50vh - 1em);
+}
+
+.callout {
+  color: #476098;
+  background-image: linear-gradient(
+    rgba(71, 96, 152, 1),
+    rgba(71, 96, 152, 0.5)
+  );
+
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
 }
