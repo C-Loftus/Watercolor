@@ -5,11 +5,14 @@ import threading, os
 import pyatspi
 from create_coords import A11yTree
 from lib import init_logger
+import sys
+sys.path.append(".")
+import shared.config as config
 
 def main():
 
     # Clean up old logs and ipc files
-    for file in ["atspi_log.txt", "/tmp/a11y_tree.json", "/tmp/watercolor-at-spi-server.sock", "talon_server_error.log"]:
+    for file in ["atspi_log.txt", config.TREE_OUTPUT_PATH,  config.SOCKET_PATH, "talon_server_error.log"]:
         if os.path.exists(file):
             os.unlink(file)
 

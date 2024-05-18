@@ -4,13 +4,12 @@ import time
 import traceback
 from datetime import datetime
 from typing import Optional
-from lib import DebuggableLock
 import sys
 sys.path.append(".") # So we can import shared outside of the package
 from shared import config
 from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse
 
-def handle_command(command: WatercolorCommand):
+def handle_command(command: WatercolorCommand) -> tuple[WatercolorCommand, ServerStatusResult]:
     print(f"RECEIVED COMMAND: {command}")
 
     return command, ServerStatusResult.SUCCESS
@@ -21,9 +20,9 @@ class IPC_Server:
     running = False
     server_socket: socket.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     client_socket: Optional[socket.socket] = None
+
     # _client_lock = DebuggableLock("Client")
     # _server_lock = DebuggableLock("Server") 
-
 
     @classmethod
     def handle_client(cls):

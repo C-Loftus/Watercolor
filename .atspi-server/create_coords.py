@@ -5,12 +5,29 @@ import json
 import os
 import logging
 import dataclasses
-from typing import ClassVar
-import base64
+from typing import ClassVar, Optional
 import sys
 sys.path.append(".") # Adds higher directory to python modules path.
+from shared.shared_types import A11yElement
 import shared.config as config
 import gi
+
+import threading
+
+class StoppableThread(threading.Thread):
+    """Thread class with a stop() method. The thread itself has to check
+    regularly for the stopped() condition."""
+
+    def __init__(self,  *args, **kwargs):
+        super(StoppableThread, self).__init__(*args, **kwargs)
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
 
 
 class Desktop():
@@ -27,20 +44,14 @@ class Desktop():
         else:
             logging.warning(f"No active window found among {[app.get_name() for app in desktop]}")
 
-
-@dataclasses.dataclass
-class A11yElement():
-    name: str
-    x: int
-    y: int
-    role: str
-    pid: int
     
     # libatspi does not export a way to get a public unique id
     # so we need to serialize the above attributes as a psuedo id
     # id: str
 
 class A11yTree():
+
+    constructor_handle: Optional[StoppableThread] = None
     
     _elements: ClassVar[list[A11yElement]] = []
 
@@ -52,10 +63,14 @@ class A11yTree():
     def element_exists(element: A11yElement):
         return element in A11yTree._elements
       
-    @staticmethod
-    def _create(root):
-        if not root: return
-
+    @classmethod
+    def _create(cls, root):
+        """
+        Recursive method for creating the a11y tree within the separate creator thread.
+        In a thread so it doesn't block when the user switches the focused app
+        """
+        if not root or cls.constructor_handle.stopped(): 
+            return
 
         for accessible in root: 
             accessible: pyatspi.Accessible
@@ -91,13 +106,19 @@ class A11yTree():
             if INTERACTABLE and not EXISTS_ALREADY and not OFF_SCREEN and not UNLABELED:
                 A11yTree._append_element(element)   
 
+            # if not EXISTS_ALREADY and not OFF_SCREEN and INTERACTABLE:
+            
             A11yTree._create(accessible)
             
-
- 
         
     @classmethod
     def reset(cls):
+        if cls.constructor_handle:
+            print("Stopping")
+            cls.constructor_handle.stop()
+            cls.constructor_handle = None
+            
+
         cls._elements = []
       
     @staticmethod
@@ -108,19 +129,24 @@ class A11yTree():
 
         'any_data', 'copy', 'detail1', 'detail2', 'host_application', 'main', 'quit', 'rawType', 'sender', 'source', 'source_name', 'source_role', 'type']
         '''
-        
+        print(event)
         root = Desktop.getRoot()
    
         A11yTree.reset()
-        try:
-            A11yTree._create(root)
-        except gi.repository.GLib.GError as e:
-            logging.error(e)
-            
+
+        A11yTree.constructor_handle = StoppableThread(target=A11yTree._create, args=(root, ))
+    
+        """
+        We need to start then join the thread to have an interruptable blocking operation.
+        If the user focused another window, we want to stop the construction and the block on
+        the creation of the new tree for the new window
+        """
+        A11yTree.constructor_handle.start()
+        A11yTree.constructor_handle.join()
+
         # don't regenerate the hats if Firefox performed a psuedo focus where nothing actually changed on the screen
         if len(A11yTree._elements) == 0 and event.type == pyatspi.EventType('focus'):
             return
-
         
         try:
             os.remove(config.TREE_OUTPUT_PATH)

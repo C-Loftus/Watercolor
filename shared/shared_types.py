@@ -1,3 +1,4 @@
+import dataclasses
 import enum
 from typing import TypedDict, Literal
 
@@ -27,3 +28,11 @@ class ServerResponse(TypedDict):
 class ResponseBundle(TypedDict):
     client: ServerResponse
     server: ServerResponse
+
+@dataclasses.dataclass(frozen=True)
+class A11yElement():
+    name: str
+    x: int
+    y: int
+    role: str
+    pid: int

@@ -6,5 +6,5 @@ os: linux
 (watercolor | color) toggle:
     user.watercolor_toggle_hats()
 
-key(ctrl-shift-5):
-    user.send_watercolor_command("click")
+color <user.watercolor_hint>:
+    user.watercolor_click(user.watercolor_hint)

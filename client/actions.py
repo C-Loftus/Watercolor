@@ -1,6 +1,6 @@
 from talon import Module, Context
 
-from .renderer import WatercolorState, ScreenLabels, renderElementStyling
+from .renderer import WatercolorState, ScreenLabels, renderElementStyling, A11yTree
 
 mod = Module()
 ctx = Context()
@@ -9,7 +9,13 @@ os: linux
 """
 
 
-mod.list("watercolor_hats", desc="The active hats over every a11y element")
+@mod.capture(
+    rule="<user.letter> <user.letter>"
+)
+def watercolor_hint(m) -> str:
+    print(m)
+    # remove all spaces inside the hint
+    return "".join(m).replace(" ", "").upper()
 
 
 @mod.action_class
@@ -20,11 +26,17 @@ class Actions:
         if WatercolorState.enabled:
             ScreenLabels.clear()
             WatercolorState.enabled = False
+            print("Watercolor disabled")
         else:
             renderElementStyling(None)
             WatercolorState.enabled = True
+            print("Watercolor enabled")
             
     def watercolor_toggle_debug():
         """Toggle showing the debug hats over every a11y element each time the screen state changes"""
 
         WatercolorState.debug = not WatercolorState.debug
+
+    def watercolor_click(label: str):
+        """Apply the specified element to the specified target"""
+        print(ScreenLabels.get_element_from_label(label))
