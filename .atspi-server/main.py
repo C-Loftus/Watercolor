@@ -19,8 +19,7 @@ def main():
     init_logger()
 
     try:
-        server = IPC_Server()
-        server_thread = threading.Thread(target=server.listen)
+        server_thread = threading.Thread(target=IPC_Server.listen)
         server_thread.start()
 
 
@@ -30,7 +29,7 @@ def main():
         pyatspi.Registry.start()        
 
     except KeyboardInterrupt:
-        server.stop()
+        IPC_Server.stop()
         
     
 if __name__ == "__main__":

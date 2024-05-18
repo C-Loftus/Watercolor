@@ -6,35 +6,20 @@ import os
 import logging
 import dataclasses
 from typing import ClassVar, Optional
-import sys
-sys.path.append(".") # Adds higher directory to python modules path.
-from shared.shared_types import A11yElement
-import shared.config as config
+import sys # isort:skip
+sys.path.append(".") # isort:skip
+from shared.shared_types import A11yElement # isort:skip
+import shared.config as config # isort:skip
 import gi
-
-import threading
-
-class StoppableThread(threading.Thread):
-    """Thread class with a stop() method. The thread itself has to check
-    regularly for the stopped() condition."""
-
-    def __init__(self,  *args, **kwargs):
-        super(StoppableThread, self).__init__(*args, **kwargs)
-        self._stop_event = threading.Event()
-
-    def stop(self):
-        self._stop_event.set()
-
-    def stopped(self):
-        return self._stop_event.is_set()
+from lib import Singleton, StoppableThread
 
 
-
-class Desktop():
+class Desktop(Singleton):
    
     @staticmethod
     def getRoot():
         desktop = pyatspi.Registry.getDesktop(0)
+
         for app in desktop:
             for window in app:
                 logging.debug(f"States for {window}: {list(window.get_state_set().get_states())}")
@@ -44,20 +29,30 @@ class Desktop():
         else:
             logging.warning(f"No active window found among {[app.get_name() for app in desktop]}")
 
-    
-    # libatspi does not export a way to get a public unique id
-    # so we need to serialize the above attributes as a psuedo id
-    # id: str
 
-class A11yTree():
+class A11yTree(Singleton):
 
     constructor_handle: Optional[StoppableThread] = None
     
     _elements: ClassVar[list[A11yElement]] = []
 
+    # Map our serializiable representation of an element to the actual Atspi element
+    # upon which actions can be invoked
+    _serialized_mapper: ClassVar[dict[A11yElement, pyatspi.Accessible]] = {}
+
+
+    @classmethod
+    def get_accessible_from_element(cls, element: A11yElement):
+        return cls._serialized_mapper.get(element)
+
+    @classmethod
+    def _stash_accessible(cls, element: A11yElement, accessible: pyatspi.Accessible):
+        cls._serialized_mapper[element] = accessible
+
     @staticmethod
     def _append_element(element: A11yElement): 
         A11yTree._elements.append(element)
+        
     
     @staticmethod
     def element_exists(element: A11yElement):
@@ -104,10 +99,10 @@ class A11yTree():
             EXISTS_ALREADY = A11yTree.element_exists(element)
 
             if INTERACTABLE and not EXISTS_ALREADY and not OFF_SCREEN and not UNLABELED:
-                A11yTree._append_element(element)   
+                A11yTree._append_element(element)  
+                A11yTree._stash_accessible(element, accessible) 
 
             # if not EXISTS_ALREADY and not OFF_SCREEN and INTERACTABLE:
-            
             A11yTree._create(accessible)
             
         
@@ -117,7 +112,7 @@ class A11yTree():
             cls.constructor_handle.stop()
             cls.constructor_handle = None
             
-
+        cls._serialized_mapper = {}
         cls._elements = []
       
     @staticmethod

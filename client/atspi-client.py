@@ -5,7 +5,7 @@ from typing import Optional, TypedDict, assert_never
 from ..shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse
 from ..shared import config
 
-from talon import Context, Module, actions, cron, settings
+from talon import Module
 
 mod = Module()
 lock = threading.Lock()

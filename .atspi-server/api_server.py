@@ -4,20 +4,28 @@ import time
 import traceback
 from datetime import datetime
 from typing import Optional
-import sys
-sys.path.append(".") # So we can import shared outside of the package
+import pyatspi
+# We need to add the root directory to the path for the shared module
+import sys # isort:skip
+sys.path.append(".") # # isort:skip
 from shared import config
-from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse, ClientPayload, A11yElement
+from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse, ClientPayload, A11yElement # isort:skip
+from create_coords import A11yTree 
+from lib import Singleton
 
 def handle_command(command: ClientPayload) -> tuple[WatercolorCommand, ServerStatusResult]:
     command = command["command"]
     
-    element = A11yElement.from_dict(command["target"])            
+    element = A11yElement.from_dict(command["target"])        
+    atspi_element: pyatspi.Accessible = A11yTree.get_accessible_from_element(element)  
+    invokable_actions = atspi_element.get_action_iface()
+    print(invokable_actions)  
 
     return command, ServerStatusResult.SUCCESS
 
+
 # Singleton class for handling IPC
-class IPC_Server:
+class IPC_Server(Singleton):
 
     running = False
     server_socket: socket.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -25,6 +33,9 @@ class IPC_Server:
 
     # _client_lock = DebuggableLock("Client")
     # _server_lock = DebuggableLock("Server") 
+
+    def __init__(self):
+        raise TypeError("Instances of this class are not allowed")
 
     @classmethod
     def handle_client(cls):
