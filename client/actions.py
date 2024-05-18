@@ -1,5 +1,5 @@
-from talon import Module, Context
-
+from talon import Module, Context, actions
+import dataclasses, json
 from .renderer import WatercolorState, ScreenLabels, renderElementStyling, A11yTree
 
 mod = Module()
@@ -39,4 +39,9 @@ class Actions:
 
     def watercolor_click(label: str):
         """Apply the specified element to the specified target"""
-        print(ScreenLabels.get_element_from_label(label))
+        res = (ScreenLabels.get_element_from_label(label).to_dict())
+        payload = {
+            "command": "click",
+            "target": res
+        }
+        actions.user.send_watercolor_command(payload)

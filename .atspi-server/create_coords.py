@@ -114,7 +114,6 @@ class A11yTree():
     @classmethod
     def reset(cls):
         if cls.constructor_handle:
-            print("Stopping")
             cls.constructor_handle.stop()
             cls.constructor_handle = None
             

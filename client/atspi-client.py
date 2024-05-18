@@ -74,10 +74,12 @@ def handle_ipc_result(
 @mod.action_class
 class ATSPIClientActions:
     def send_watercolor_command(
-        command: str,
+        payload: dict[str, str],
     ) :
         """Sends a single command to the screenreader"""
 
+        # We can only add client side verification for the command name, not the element
+        command = payload["command"]
         if command != "click" and command != "focus":
             raise ValueError(f"Invalid command '{command}' sent to atspi server")
 

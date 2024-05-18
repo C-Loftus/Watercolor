@@ -7,10 +7,12 @@ from typing import Optional
 import sys
 sys.path.append(".") # So we can import shared outside of the package
 from shared import config
-from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse
+from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse, ClientPayload, A11yElement
 
-def handle_command(command: WatercolorCommand) -> tuple[WatercolorCommand, ServerStatusResult]:
-    print(f"RECEIVED COMMAND: {command}")
+def handle_command(command: ClientPayload) -> tuple[WatercolorCommand, ServerStatusResult]:
+    command = command["command"]
+    
+    element = A11yElement.from_dict(command["target"])            
 
     return command, ServerStatusResult.SUCCESS
 
@@ -35,7 +37,7 @@ class IPC_Server:
         }
 
         try:
-            client_request = json.loads(data.decode().strip())
+            client_request: ClientPayload = json.loads(data.decode().strip())
             command, result = handle_command(client_request)
 
 

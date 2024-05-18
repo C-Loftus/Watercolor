@@ -36,3 +36,23 @@ class A11yElement():
     y: int
     role: str
     pid: int
+
+    # nicer chainable representation
+    def to_dict(self):
+        return dataclasses.asdict(self)
+    
+    @classmethod
+    def from_dict(cls, d):  
+        return cls(**d)
+    
+
+class ClientPayload(TypedDict):
+    command: WatercolorCommand
+    # We are sending over the serialized dict not the dataclass itself
+    target: dict[
+        "name": str,
+        "x": int,
+        "y": int,
+        "role": str,
+        "pid": int
+    ]
