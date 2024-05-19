@@ -17,9 +17,12 @@ This repo has an atspi server that gets a11y element names and positions, and th
 
 ## Notes / Caveats
 
-- **This repo is a work in progress**
 - Many apps don't implement at-spi properly
   - Try to use well supported common applications like Visual Studio Code, Firefox, etc.
   - Please submit upstream a11y requests to those applications
 - Some applications **need to be launched after our atspi is initialized**
   - Firefox is one notable example
+
+# Licensing and Support
+
+I offer accessibility consulting and support.

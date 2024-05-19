@@ -22,8 +22,8 @@ def main():
         server_thread = threading.Thread(target=IPC_Server.listen)
         server_thread.start()
 
-
-        for event in ["window:activate", "window:create", "window:deactivate", "window:destroy", "window:maximize", "window:minimize", "window:move", "focus", "object:visible-data-changed"]:
+#"window:deactivate", 
+        for event in ["window:activate", "window:create", "window:destroy", "window:maximize", "window:minimize", "window:move", "focus", "object:visible-data-changed"]:
             pyatspi.Registry.registerEventListener(A11yTree.dump, event)
 
         pyatspi.Registry.start()        

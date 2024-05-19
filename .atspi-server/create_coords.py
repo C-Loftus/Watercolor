@@ -11,8 +11,8 @@ sys.path.append(".") # isort:skip
 from shared.shared_types import A11yElement # isort:skip
 import shared.config as config # isort:skip
 import gi
-from lib import Singleton, StoppableThread
-
+from lib import Singleton, StoppableThread, AtspiEvent
+import time
 
 class Desktop(Singleton):
    
@@ -23,12 +23,12 @@ class Desktop(Singleton):
         for app in desktop:
             for window in app:
                 logging.debug(f"States for {window}: {list(window.get_state_set().get_states())}")
+                # print(f"\n\nStates for {window}: {[str(state) for state in list(window.get_state_set().get_states())]}")
                 if window.getState().contains(pyatspi.STATE_ACTIVE):
                     return window
                 
         else:
-            logging.warning(f"No active window found among {[app.get_name() for app in desktop]}")
-
+            print(f"No active window found among {[app.get_name() for app in desktop]}")
 
 class A11yTree(Singleton):
 
@@ -116,16 +116,10 @@ class A11yTree(Singleton):
         cls._elements = []
       
     @staticmethod
-    def dump(event):
+    def dump(event: AtspiEvent):
 
-        '''
-        Event fields:
-
-        'any_data', 'copy', 'detail1', 'detail2', 'host_application', 'main', 'quit', 'rawType', 'sender', 'source', 'source_name', 'source_role', 'type']
-        '''
-        print(event)
         root = Desktop.getRoot()
-   
+
         A11yTree.reset()
 
         A11yTree.constructor_handle = StoppableThread(target=A11yTree._create, args=(root, ))
@@ -159,7 +153,7 @@ class A11yTree(Singleton):
 
             json.dump(entire_tree_serialized, outfile)
 
-        print(f"Dumped tree for {root} with {len(A11yTree._elements)} elements")
+        print(f"Dumped tree for {(event.type)} from {event.source} inside {root} with {len(A11yTree._elements)} elements")
 
 
 

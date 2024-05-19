@@ -54,7 +54,7 @@ def handle_ipc_result(
             pass
         case ServerStatusResult.INVALID_COMMAND_ERROR:
             cmd = server_response["command"]
-            raise ValueError(f"Invalid command '{command}' sent to atspi server")
+            raise ValueError(f"Invalid command '{cmd}' sent to atspi server")
         case ServerStatusResult.JSON_ENCODE_ERROR:
             raise ValueError(
                 "Invalid JSON payload sent from client to atspi server"

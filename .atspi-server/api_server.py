@@ -20,17 +20,21 @@ def handle_command(payload: ClientPayload) -> tuple[WatercolorCommand, ServerSta
     atspi_element: pyatspi.Accessible = A11yTree.get_accessible_from_element(element) 
      
     actionable_element = atspi_element.get_action_iface()
+
+    if not actionable_element:
+        return command, ServerStatusResult.INVALID_COMMAND_ERROR
+
     num_actions = actionable_element.get_n_actions()
 
-    print("Action i is:")
     for i in range(num_actions):
         description = actionable_element.get_action_description(i)
         name = actionable_element.get_action_name(i)
-
+        print(f"{i}: {description=} ({name=})")
         match name:
-            case "press" | "activate" if command == "click":
+            case "press" | "activate" | "clickAncestor" if command == "click":
                 actionable_element.do_action(i)
-
+    else:
+        print(f"No actions found within {[actionable_element.get_action_name(i) for i in range(num_actions)]}")
 
     return command, ServerStatusResult.SUCCESS
 

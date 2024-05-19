@@ -5,6 +5,9 @@ import threading
 import inspect
 import logging
 import os 
+from dataclasses import dataclass
+import pyatspi
+from typing import Literal
 
 import threading
 
@@ -23,6 +26,18 @@ class StoppableThread(threading.Thread):
         return self._stop_event.is_set()
 
 
+@dataclass
+class AtspiEvent():
+    """
+    https://lazka.github.io/pgi-docs/Atspi-2.0/classes/Event.html
+    """
+    detail1: int
+    detail2: int
+    type: pyatspi.appevent.EventType
+    sender: pyatspi.Accessible
+    source: pyatspi.Accessible
+
+    any_data: any
 
 class Singleton:
     def __init__(self):

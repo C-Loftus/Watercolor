@@ -13,7 +13,6 @@ os: linux
     rule="<user.letter> <user.letter>"
 )
 def watercolor_hint(m) -> str:
-    print(m)
     # remove all spaces inside the hint
     return "".join(m).replace(" ", "").upper()
 
@@ -39,7 +38,11 @@ class Actions:
 
     def watercolor_click(label: str):
         """Apply the specified element to the specified target"""
-        res = (ScreenLabels.get_element_from_label(label).to_dict())
+        try:
+            res = (ScreenLabels.get_element_from_label(label).to_dict())
+        except KeyError:
+            print(f"Error: {label} not found in", ScreenLabels.element_mapping)
+
         payload = {
             "command": "click",
             "target": res
