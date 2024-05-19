@@ -13,29 +13,33 @@ from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerRes
 from create_coords import A11yTree 
 from lib import Singleton
 
-def handle_command(command: ClientPayload) -> tuple[WatercolorCommand, ServerStatusResult]:
-    command = command["command"]
+def handle_command(payload: ClientPayload) -> tuple[WatercolorCommand, ServerStatusResult]:
+    command = payload["command"]
     
-    element = A11yElement.from_dict(command["target"])        
-    atspi_element: pyatspi.Accessible = A11yTree.get_accessible_from_element(element)  
-    invokable_actions = atspi_element.get_action_iface()
-    print(invokable_actions)  
+    element = A11yElement.from_dict(payload["target"])        
+    atspi_element: pyatspi.Accessible = A11yTree.get_accessible_from_element(element) 
+     
+    actionable_element = atspi_element.get_action_iface()
+    num_actions = actionable_element.get_n_actions()
+
+    print("Action i is:")
+    for i in range(num_actions):
+        description = actionable_element.get_action_description(i)
+        name = actionable_element.get_action_name(i)
+
+        match name:
+            case "press" | "activate" if command == "click":
+                actionable_element.do_action(i)
+
 
     return command, ServerStatusResult.SUCCESS
 
 
-# Singleton class for handling IPC
 class IPC_Server(Singleton):
 
     running = False
     server_socket: socket.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     client_socket: Optional[socket.socket] = None
-
-    # _client_lock = DebuggableLock("Client")
-    # _server_lock = DebuggableLock("Server") 
-
-    def __init__(self):
-        raise TypeError("Instances of this class are not allowed")
 
     @classmethod
     def handle_client(cls):
@@ -49,6 +53,7 @@ class IPC_Server(Singleton):
 
         try:
             client_request: ClientPayload = json.loads(data.decode().strip())
+            print(client_request, type(client_request))
             command, result = handle_command(client_request)
 
 

@@ -1,7 +1,7 @@
 import json, enum
 import socket
 import threading
-from typing import Optional, TypedDict, assert_never
+from typing import Optional, TypedDict, assert_never, get_args
 from ..shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse
 from ..shared import config
 
@@ -79,14 +79,12 @@ class ATSPIClientActions:
         """Sends a single command to the screenreader"""
 
         # We can only add client side verification for the command name, not the element
-        command = payload["command"]
-        if command != "click" and command != "focus":
-            raise ValueError(f"Invalid command '{command}' sent to atspi server")
-
+        if payload["command"] not in get_args(WatercolorCommand):
+            raise ValueError(f"Invalid command '{payload['command']}' sent to atspi server")
         
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(0.2)
-        encoded = json.dumps(command).encode()
+        encoded = json.dumps(payload).encode()
 
         # Default response if nothing is set
         response: ResponseBundle = {
@@ -122,4 +120,4 @@ class ATSPIClientActions:
             finally:
                 sock.close()
 
-        handle_ipc_result(response["client"], response["server"], command)
+        handle_ipc_result(response["client"], response["server"], payload["command"])

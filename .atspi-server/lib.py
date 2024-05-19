@@ -26,7 +26,7 @@ class StoppableThread(threading.Thread):
 
 class Singleton:
     def __init__(self):
-        raise TypeError("This represents a singleton and cannot be instantiated. Use only class methods")
+        raise TypeError("This class represents a singleton and cannot be instantiated. Use only class methods")
 
 # We can't subclass the lock so we make it an attribute
 class DebuggableLock:
