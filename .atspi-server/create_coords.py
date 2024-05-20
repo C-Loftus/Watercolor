@@ -1,5 +1,6 @@
 
 import gi.repository
+from gi.repository import Atspi
 import pyatspi
 import json
 import os
@@ -11,7 +12,7 @@ sys.path.append(".") # isort:skip
 from shared.shared_types import A11yElement # isort:skip
 import shared.config as config # isort:skip
 import gi
-from lib import Singleton, StoppableThread, AtspiEvent
+from lib import Singleton, InterruptableThread, AtspiEvent
 import time
 
 class Desktop(Singleton):
@@ -19,20 +20,21 @@ class Desktop(Singleton):
     @staticmethod
     def getRoot():
         desktop = pyatspi.Registry.getDesktop(0)
-
+        
         for app in desktop:
             for window in app:
-                logging.debug(f"States for {window}: {list(window.get_state_set().get_states())}")
                 # print(f"\n\nStates for {window}: {[str(state) for state in list(window.get_state_set().get_states())]}")
                 if window.getState().contains(pyatspi.STATE_ACTIVE):
-                    return window
+                    return app, window
                 
         else:
-            print(f"No active window found among {[app.get_name() for app in desktop]}")
+            logging.debug(f"No active window found among {[app.get_name() for app in desktop]}")
+
+        return (None, None)
 
 class A11yTree(Singleton):
 
-    constructor_handle: Optional[StoppableThread] = None
+    constructor_handle: Optional[InterruptableThread] = None
     
     _elements: ClassVar[list[A11yElement]] = []
 
@@ -64,7 +66,7 @@ class A11yTree(Singleton):
         Recursive method for creating the a11y tree within the separate creator thread.
         In a thread so it doesn't block when the user switches the focused app
         """
-        if not root or cls.constructor_handle.stopped(): 
+        if not root or cls.constructor_handle.interrupted(): 
             return
 
         for accessible in root: 
@@ -73,7 +75,6 @@ class A11yTree(Singleton):
 
             point = accessible.get_position(pyatspi.XY_SCREEN)
             states = accessible.get_state_set() 
-            logging.debug(f"States for {accessible}: {list(states.get_states())}")
             # https://docs.gtk.org/atspi2/enum.StateType.html
                 
             visible = states.contains(pyatspi.STATE_VISIBLE)
@@ -109,20 +110,32 @@ class A11yTree(Singleton):
     @classmethod
     def reset(cls):
         if cls.constructor_handle:
-            cls.constructor_handle.stop()
+            cls.constructor_handle.interrupt()
+            logging.debug("Construct handle removed")
             cls.constructor_handle = None
             
         cls._serialized_mapper = {}
         cls._elements = []
       
-    @staticmethod
-    def dump(event: AtspiEvent):
+    @classmethod
+    def dump(cls, event: AtspiEvent):
 
-        root = Desktop.getRoot()
+        start = time.time()
+
+        app, root = Desktop.getRoot()
+        app = "NULL" if app is None else app.get_name()
+
+
+
+        tree_action = "interrupting" if cls.constructor_handle else "starting"
+        logging.debug(f"Tree dump {tree_action} with {(event.type)} from {event.source} inside {root}")
 
         A11yTree.reset()
 
-        A11yTree.constructor_handle = StoppableThread(target=A11yTree._create, args=(root, ))
+        assert cls.constructor_handle is None
+
+        A11yTree.constructor_handle = InterruptableThread(target=A11yTree._create, args=(root, ))
+
     
         """
         We need to start then join the thread to have an interruptable blocking operation.
@@ -131,9 +144,22 @@ class A11yTree(Singleton):
         """
         A11yTree.constructor_handle.start()
         A11yTree.constructor_handle.join()
+        if A11yTree.constructor_handle.interrupted():
+            logging.debug(f"Tree dump interrupted for {app}")
+            return
+        
+        # Once the thread is done, get rid of the handle
+        A11yTree.constructor_handle = None
 
         # don't regenerate the hats if Firefox performed a psuedo focus where nothing actually changed on the screen
-        if len(A11yTree._elements) == 0 and event.type == pyatspi.EventType('focus'):
+        FROM_INTERNAL_FRAME = event.source.getRole() == pyatspi.ROLE_FRAME
+        PSEUDO_UPDATE = len(A11yTree._elements) == 0 and event.type == pyatspi.EventType('focus')
+        if FROM_INTERNAL_FRAME:
+            logging.debug(f"Skipped tree dump for internal frame inside {app} with {len(A11yTree._elements)} elements")
+            return
+
+        if PSEUDO_UPDATE:
+            logging.debug(f"Skipped tree dump for pseudo update inside {app}.")
             return
         
         try:
@@ -144,16 +170,14 @@ class A11yTree(Singleton):
         with open(config.TREE_OUTPUT_PATH, 'w') as outfile:
 
             entire_tree_serialized = [
-                dataclasses.asdict(element) for element in A11yTree._elements]
-            
-            # b64_tree = base64.b64encode(json.dumps(entire_tree_serialized).encode('utf-8'))
+                element.to_dict() for element in A11yTree._elements]
 
-
-            # outfile.write(str(b64_tree))
 
             json.dump(entire_tree_serialized, outfile)
 
-        print(f"Dumped tree for {(event.type)} from {event.source} inside {root} with {len(A11yTree._elements)} elements")
+        delta = round(time.time() - start, 2)
+
+        logging.debug(f"Dumped tree with {len(A11yTree._elements)} elements in {delta} seconds")
 
 
 

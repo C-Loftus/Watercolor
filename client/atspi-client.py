@@ -46,15 +46,14 @@ def handle_ipc_result(
             # empty case for pyright exhaustiveness
             pass
 
-
-    match (server_response):
+    cmd = server_response["command"]
+    match (server_response["result"]):
 
         case ServerStatusResult.SUCCESS:
             # empty case is here for exhaustiveness
             pass
         case ServerStatusResult.INVALID_COMMAND_ERROR:
-            cmd = server_response["command"]
-            raise ValueError(f"Invalid command '{cmd}' sent to atspi server")
+            raise ValueError(f"Invalid command {cmd} sent to atspi server")
         case ServerStatusResult.JSON_ENCODE_ERROR:
             raise ValueError(
                 "Invalid JSON payload sent from client to atspi server"
@@ -63,10 +62,13 @@ def handle_ipc_result(
             ServerStatusResult.INTERNAL_SERVER_ERROR
             | ServerStatusResult.RUNTIME_ERROR
         ) as error:
-            raise RuntimeError(f"Server {error.value} processing command '{command}'")
+            raise RuntimeError(f"Server {error.value} processing command '{cmd}'")
+        
+        case ServerStatusResult.NO_ACTION_SUPPORTED_ERROR:
+            raise ValueError(f"Command '{cmd}' not supported by targeted a11y element")
         
         case None:
-            raise RuntimeError(f"Client never connected to server for '{command}'")
+            raise RuntimeError(f"Client never connected to server for '{cmd}'")
         case _:
             assert_never((server_response, command))
 
@@ -80,7 +82,7 @@ class ATSPIClientActions:
 
         # We can only add client side verification for the command name, not the element
         if payload["command"] not in get_args(WatercolorCommand):
-            raise ValueError(f"Invalid command '{payload['command']}' sent to atspi server")
+            raise ValueError(f"Caught invalid command '{payload['command']}' before sending to atspi server")
         
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(0.2)
@@ -105,7 +107,11 @@ class ATSPIClientActions:
                 server_response: ServerResponse = json.loads(raw_data.decode("utf-8"))
 
                 response["client"] = ClientResponse.SUCCESS
-                response["server"] = ServerStatusResult.generate_from(server_response["result"])
+
+                response["server"] = {
+                    "command": server_response["command"],
+                    "result": ServerStatusResult.generate_from(server_response["result"])
+                }
             except KeyError as enum_decode_error:
                 print("Error decoding enum", enum_decode_error, response)
                 response["client"] = ClientResponse.GENERAL_ERROR

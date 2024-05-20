@@ -1,7 +1,6 @@
 from .client_types import WatercolorState
 from talon import resource, Context
 import pathlib, os, json
-from typing import TypedDict
 from talon.canvas import Canvas
 from talon.types import Rect
 from talon import ui
@@ -12,7 +11,7 @@ import itertools
 from typing import ClassVar
 from ..shared.shared_types import A11yElement
 from ..shared import config
-
+import time
 
 import itertools
 
@@ -117,7 +116,9 @@ def renderElementStyling(_):
 
     # if not os.path.exists(A11yTree.ipc_path):
         # raise Exception(f"File {A11yTree.ipc_path=} was updated but now does not exist")
-
+    # start the timer
+    
+    start = time.time()
     if not WatercolorState.enabled:
         return
     
@@ -130,3 +131,4 @@ def renderElementStyling(_):
 
     ScreenLabels.render()
 
+    print(f"Rendered in {round(time.time() - start, 3)} seconds")

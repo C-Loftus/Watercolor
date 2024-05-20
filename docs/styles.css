@@ -1,6 +1,6 @@
 /* Default style for body */
 body {
-  font: 16px "Work Sans", sans-serif;
+  font: 18px "Work Sans", sans-serif;
   margin: 0;
   padding: 0;
   /* color: #2b2b2bef; */
@@ -10,7 +10,8 @@ body {
 
   background-blend-mode: screen;
   background-repeat: no-repeat;
-  min-height: 100vh;
+  background-attachment: fixed;
+  min-height: 150vh;
   display: flex;
   flex-direction: column;
 }
@@ -78,10 +79,19 @@ body {
 
 span {
   display: inline-block;
-  padding: 0.5em;
   background-color: rgba(0, 0, 0, 0.1); /* Adjust opacity as needed */
   border-radius: 6px;
-  padding: 3px;
+  padding: 7px;
+  font: 18px "Ubuntu Mono", sans-serif;
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+span > img {
+  /* make it all the way to the right */
+  float: right;
+  margin-right: 10px;
 }
 
 img.copy {

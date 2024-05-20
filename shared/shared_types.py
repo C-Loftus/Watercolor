@@ -8,6 +8,7 @@ class ServerStatusResult(enum.Enum):
     INVALID_COMMAND_ERROR = "commandError"
     RUNTIME_ERROR = "runtimeError"
     JSON_ENCODE_ERROR = "jsonEncodeError"
+    NO_ACTION_SUPPORTED_ERROR = "noActionSupportedError"
 
     @staticmethod
     def generate_from(value: str):
@@ -17,7 +18,7 @@ class ServerStatusResult(enum.Enum):
         raise KeyError(f"Invalid status result: {value}")
 
 
-WatercolorCommand = Literal["click", "focus"]
+WatercolorCommand = Literal["click", "inspect"]
 
 
 class ServerResponse(TypedDict):

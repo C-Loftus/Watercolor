@@ -36,15 +36,25 @@ class Actions:
 
         WatercolorState.debug = not WatercolorState.debug
 
-    def watercolor_click(label: str):
+    def watercolor_action(action_name: str, target_label: str):
         """Apply the specified element to the specified target"""
         try:
-            res = (ScreenLabels.get_element_from_label(label).to_dict())
+            payload = {
+                "command": "",
+                "target": ScreenLabels.get_element_from_label(target_label).to_dict()
+            }
         except KeyError:
-            print(f"Error: {label} not found in", ScreenLabels.element_mapping)
+            print(f"Error: {target_label} not found in", ScreenLabels.element_mapping)
+            return
 
-        payload = {
-            "command": "click",
-            "target": res
-        }
+
+        if action_name == "click":
+            payload["command"] = "click"
+        elif action_name == "inspect":
+            payload["command"] = "inspect"
+        else:
+            raise Exception(f"Invalid action: {action_name}")
+
         actions.user.send_watercolor_command(payload)
+
+    

@@ -7,34 +7,46 @@ from typing import Optional
 import pyatspi
 # We need to add the root directory to the path for the shared module
 import sys # isort:skip
-sys.path.append(".") # # isort:skip
-from shared import config
+sys.path.append(".") # isort:skip
+from shared import config # isort:skip
 from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse, ClientPayload, A11yElement # isort:skip
 from create_coords import A11yTree 
-from lib import Singleton
+from lib import Singleton, inspect_element
+
 
 def handle_command(payload: ClientPayload) -> tuple[WatercolorCommand, ServerStatusResult]:
     command = payload["command"]
     
     element = A11yElement.from_dict(payload["target"])        
     atspi_element: pyatspi.Accessible = A11yTree.get_accessible_from_element(element) 
-     
-    actionable_element = atspi_element.get_action_iface()
 
-    if not actionable_element:
-        return command, ServerStatusResult.INVALID_COMMAND_ERROR
+    match command:
+        case "click":
+            actions = atspi_element.get_action_iface()
 
-    num_actions = actionable_element.get_n_actions()
+            if not actions:
+                print(f"No action interface found for element {atspi_element.get_name()}, with role: {atspi_element.get_role_name()}")
+                return command, ServerStatusResult.NO_ACTION_SUPPORTED_ERROR
 
-    for i in range(num_actions):
-        description = actionable_element.get_action_description(i)
-        name = actionable_element.get_action_name(i)
-        print(f"{i}: {description=} ({name=})")
-        match name:
-            case "press" | "activate" | "clickAncestor" if command == "click":
-                actionable_element.do_action(i)
-    else:
-        print(f"No actions found within {[actionable_element.get_action_name(i) for i in range(num_actions)]}")
+            num_actions = actions.get_n_actions()
+
+            if num_actions == 0:
+                print(f"No actions found within {[actions.get_action_name(i) for i in range(num_actions)]}")
+                return command, ServerStatusResult.NO_ACTION_SUPPORTED_ERROR
+            
+
+            for i in range(num_actions):
+                description = actions.get_action_description(i)
+                name = actions.get_action_name(i)
+                print(f"{i}: {description=} ({name=})")
+
+            print(f"Running primary action {actions.get_action_name(0)} with description {actions.get_action_description(0)}")
+            actions.do_action(PRIMARY_ACTION := 0)
+
+        case "inspect":
+            inspect_element(atspi_element)
+        case _:
+            raise ValueError(f"Invalid command: {command}")
 
     return command, ServerStatusResult.SUCCESS
 

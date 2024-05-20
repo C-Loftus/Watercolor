@@ -4,7 +4,7 @@ from api_server import IPC_Server
 import threading, os
 import pyatspi
 from create_coords import A11yTree
-from lib import init_logger
+from lib import init_logger, AtspiListenableEvent
 import sys
 sys.path.append(".")
 import shared.config as config
@@ -22,7 +22,8 @@ def main():
         server_thread = threading.Thread(target=IPC_Server.listen)
         server_thread.start()
 
-#"window:deactivate", 
+        # Don't watch window:deactivate since it will trigger after the activate and reset the hints
+        event: AtspiListenableEvent
         for event in ["window:activate", "window:create", "window:destroy", "window:maximize", "window:minimize", "window:move", "focus", "object:visible-data-changed"]:
             pyatspi.Registry.registerEventListener(A11yTree.dump, event)
 

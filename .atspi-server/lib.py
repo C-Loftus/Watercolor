@@ -1,28 +1,25 @@
-import enum
 import threading
-import inspect
 import threading
-import inspect
 import logging
-import os 
 from dataclasses import dataclass
 import pyatspi
 from typing import Literal
 
+
 import threading
 
-class StoppableThread(threading.Thread):
-    """Thread class with a stop() method. The thread itself has to check
-    regularly for the stopped() condition."""
+class InterruptableThread(threading.Thread):
 
     def __init__(self,  *args, **kwargs):
-        super(StoppableThread, self).__init__(*args, **kwargs)
+        super(InterruptableThread, self).__init__(*args, **kwargs)
         self._stop_event = threading.Event()
 
-    def stop(self):
+    def interrupt(self, log_message=""):
+        if log_message:
+            logging.debug(log_message)
         self._stop_event.set()
 
-    def stopped(self):
+    def interrupted(self):
         return self._stop_event.is_set()
 
 
@@ -94,8 +91,58 @@ def init_logger():
                             filemode='a',
                             format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                             datefmt='%H:%M:%S',
-                            level=logging.INFO)
+                            level=logging.DEBUG)
 
     logging.info("Initializing Watercolor")
 
+def inspect_element(accessible: pyatspi.Accessible):
+    point = accessible.get_position(pyatspi.XY_SCREEN)
+    x = point.x
+    y = point.y
+    states = [s for s in accessible.get_state_set()]
+    parent_application = accessible.get_application().get_name()
+    pid = accessible.get_process_id()
+    role = accessible.get_role_name()
+    name = accessible.get_name() 
+    print(f"{x=}{y=}{states=}{parent_application=}{pid=}{role=}{name=}")
 
+AtspiListenableEvent = Literal[
+    # https://docs.gtk.org/atspi2/method.EventListener.register.html
+    "document:attributes-changed",
+    "document:reload",
+    "document:load-complete",
+    "document:load-stopped",
+    "document:page-changed",
+    "mouse:button",
+    "object:announcement",
+    "object:active-descendant-changed",
+    "object:attributes-changed",
+    "object:children-changed:add",
+    "object:children-changed:remove",
+    "object:column-reordered",
+    "object:property-change:accessible-description",
+    "object:property-change:accessible-name",
+    "object:property-change:accessible-value",
+    "object:row-reordered",
+    "object:selection-changed",
+    "object:state-changed:active",
+    "object:state-changed:busy",
+    "object:state-changed:checked",
+    "object:state-changed:expanded",
+    "object:state-changed:focused",
+    "object:state-changed:indeterminate",
+    "object:state-changed:pressed",
+    "object:state-changed:selected",
+    "object:state-changed:sensitive",
+    "object:state-changed:showing",
+    "object:text-attributes-changed",
+    "object:text-caret-moved",
+    "object:text-changed:delete",
+    "object:text-changed:insert",
+    "object:text-selection-changed",
+    "object:value-changed",
+    "window:activate",
+    "window:create",
+    "window:deactivate",
+    "window:destroy"
+]

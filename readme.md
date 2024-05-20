@@ -1,10 +1,5 @@
 <h1 align="center">Watercolor</h1>
 
-<p align="center">
-  <!-- <img src="assets/wide.png" alt="Watercolor Logo" width="100%"> -->
-  <img src="assets/watercolor-logo.png" alt="Watercolor Logo" width="30%">
-</p>
-
 ## Setup
 
 This repo has an atspi server that gets a11y element names and positions, and then a Talon client that creates hats for user interaction using them.
