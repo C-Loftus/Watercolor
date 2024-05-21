@@ -119,8 +119,7 @@ def renderElementStyling(_):
     # start the timer
     
     start = time.time()
-    if not WatercolorState.enabled:
-        return
+
     
     elements: list[A11yElement] = A11yTree.getElements()
     ScreenLabels.clear()
@@ -128,7 +127,10 @@ def renderElementStyling(_):
     for element in elements:
 
         ScreenLabels.add( element)
-
+    
+    if not WatercolorState.enabled:
+        return
+    
     ScreenLabels.render()
 
     print(f"Rendered in {round(time.time() - start, 3)} seconds")

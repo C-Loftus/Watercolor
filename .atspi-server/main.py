@@ -24,7 +24,7 @@ def main():
 
         # Don't watch window:deactivate since it will trigger after the activate and reset the hints
         event: AtspiListenableEvent
-        for event in ["window:activate", "window:create", "window:destroy", "window:maximize", "window:minimize", "window:move", "focus", "object:visible-data-changed"]:
+        for event in ["window:activate", "window:create", "window:destroy", "window:maximize", "window:minimize", "window:move", "object:visible-data-changed"]:
             pyatspi.Registry.registerEventListener(A11yTree.dump, event)
 
         pyatspi.Registry.start()        

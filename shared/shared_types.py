@@ -9,6 +9,7 @@ class ServerStatusResult(enum.Enum):
     RUNTIME_ERROR = "runtimeError"
     JSON_ENCODE_ERROR = "jsonEncodeError"
     NO_ACTION_SUPPORTED_ERROR = "noActionSupportedError"
+    NO_ACTION_INTERFACE_ERROR = "noInterfaceError"
 
     @staticmethod
     def generate_from(value: str):

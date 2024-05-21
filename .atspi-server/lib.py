@@ -5,7 +5,6 @@ from dataclasses import dataclass
 import pyatspi
 from typing import Literal
 
-
 import threading
 
 class InterruptableThread(threading.Thread):
@@ -21,6 +20,18 @@ class InterruptableThread(threading.Thread):
 
     def interrupted(self):
         return self._stop_event.is_set()
+
+
+def get_states(accessible_obj):
+
+    state_list = []
+    for state in list(accessible_obj.get_state_set().get_states()):
+
+        state_str = str(state).split("enum ")[1].split("of type")[0]
+
+        state_list.append(state_str)
+
+    return state_list
 
 
 @dataclass
@@ -99,7 +110,7 @@ def inspect_element(accessible: pyatspi.Accessible):
     point = accessible.get_position(pyatspi.XY_SCREEN)
     x = point.x
     y = point.y
-    states = [s for s in accessible.get_state_set()]
+    states = get_states(accessible)
     parent_application = accessible.get_application().get_name()
     pid = accessible.get_process_id()
     role = accessible.get_role_name()

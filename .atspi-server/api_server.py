@@ -12,13 +12,20 @@ from shared import config # isort:skip
 from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse, ClientPayload, A11yElement # isort:skip
 from create_coords import A11yTree 
 from lib import Singleton, inspect_element
+import logging
 
 
 def handle_command(payload: ClientPayload) -> tuple[WatercolorCommand, ServerStatusResult]:
+    logging.debug(f"Recieved {payload}")
+    print(f"Recieved {payload}")
     command = payload["command"]
     
     element = A11yElement.from_dict(payload["target"])        
     atspi_element: pyatspi.Accessible = A11yTree.get_accessible_from_element(element) 
+
+    if not atspi_element:
+        print(f"Tried to click an element: {element}, but it doesn't exist in the tree")
+        return command, ServerStatusResult.INTERNAL_SERVER_ERROR
 
     match command:
         case "click":
@@ -26,7 +33,7 @@ def handle_command(payload: ClientPayload) -> tuple[WatercolorCommand, ServerSta
 
             if not actions:
                 print(f"No action interface found for element {atspi_element.get_name()}, with role: {atspi_element.get_role_name()}")
-                return command, ServerStatusResult.NO_ACTION_SUPPORTED_ERROR
+                return command, ServerStatusResult.NO_ACTION_INTERFACE_ERROR
 
             num_actions = actions.get_n_actions()
 
@@ -69,10 +76,7 @@ class IPC_Server(Singleton):
 
         try:
             client_request: ClientPayload = json.loads(data.decode().strip())
-            print(client_request, type(client_request))
             command, result = handle_command(client_request)
-
-
             response_for_client: ServerResponse = {
             "command": command,
             "result": result.value

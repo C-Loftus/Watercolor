@@ -30,6 +30,7 @@ class Actions:
             renderElementStyling(None)
             WatercolorState.enabled = True
             print("Watercolor enabled")
+            ScreenLabels.render()
             
     def watercolor_toggle_debug():
         """Toggle showing the debug hats over every a11y element each time the screen state changes"""
@@ -44,8 +45,7 @@ class Actions:
                 "target": ScreenLabels.get_element_from_label(target_label).to_dict()
             }
         except KeyError:
-            print(f"Error: {target_label} not found in", ScreenLabels.element_mapping)
-            return
+            raise KeyError(f"Error: {target_label} not found in", ScreenLabels.element_mapping)
 
 
         if action_name == "click":
@@ -54,7 +54,7 @@ class Actions:
             payload["command"] = "inspect"
         else:
             raise Exception(f"Invalid action: {action_name}")
-
+        print(payload)
         actions.user.send_watercolor_command(payload)
 
     

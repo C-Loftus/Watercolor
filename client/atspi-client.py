@@ -38,9 +38,9 @@ def handle_ipc_result(
             | ClientResponse.TIMED_OUT
             | ClientResponse.GENERAL_ERROR,
             _,
-        ) as error:
+        ) as communication_error:
             raise RuntimeError(
-                f"Clientside {error=} communicating with screenreader extension"
+                f"Clientside {communication_error=} communicating with screenreader extension"
             )
         case (ClientResponse.SUCCESS, _):
             # empty case for pyright exhaustiveness
@@ -64,6 +64,9 @@ def handle_ipc_result(
         ) as error:
             raise RuntimeError(f"Server {error.value} processing command '{cmd}'")
         
+        case ServerStatusResult.NO_ACTION_INTERFACE_ERROR:
+            raise ValueError(f"The targeted element is inaccessible and does not support running a11y actions on it")
+
         case ServerStatusResult.NO_ACTION_SUPPORTED_ERROR:
             raise ValueError(f"Command '{cmd}' not supported by targeted a11y element")
         

@@ -1,6 +1,5 @@
 
 import gi.repository
-from gi.repository import Atspi
 import pyatspi
 import json
 import os
@@ -12,29 +11,42 @@ sys.path.append(".") # isort:skip
 from shared.shared_types import A11yElement # isort:skip
 import shared.config as config # isort:skip
 import gi
-from lib import Singleton, InterruptableThread, AtspiEvent
+from lib import Singleton, InterruptableThread, AtspiEvent, get_states
 import time
 
 class Desktop(Singleton):
    
     @staticmethod
-    def getRoot():
+    def getRoot(specific_app: Optional[str] = None):
         desktop = pyatspi.Registry.getDesktop(0)
-        
         for app in desktop:
             for window in app:
-                # print(f"\n\nStates for {window}: {[str(state) for state in list(window.get_state_set().get_states())]}")
-                if window.getState().contains(pyatspi.STATE_ACTIVE):
+                states = get_states(window)
+                ACTIVE = window.getState().contains(pyatspi.STATE_ACTIVE)
+                # Active should not be used for objects which have State::Focusable or State::Selectable: 
+                # Those objects should use State::Focused and State::Selected respectively.
+
+                FOCUSABLE = window.getState().contains(pyatspi.STATE_FOCUSED)
+                SELECTABLE = window.getState().contains(pyatspi.STATE_SELECTED)
+
+                if ACTIVE:
+                    # logging.debug(f"{app.get_name()} {states}")
+                    return app, window
+                
+                if specific_app and specific_app == app.get_name():
                     return app, window
                 
         else:
-            logging.debug(f"No active window found among {[app.get_name() for app in desktop]}")
+            logging.debug(f"No root window found among {[app.get_name() for app in desktop]}")
 
         return (None, None)
+
 
 class A11yTree(Singleton):
 
     constructor_handle: Optional[InterruptableThread] = None
+
+    cached_a11y_dump = None
     
     _elements: ClassVar[list[A11yElement]] = []
 
@@ -61,7 +73,7 @@ class A11yTree(Singleton):
         return element in A11yTree._elements
       
     @classmethod
-    def _create(cls, root):
+    def _create(cls, root_application, root):
         """
         Recursive method for creating the a11y tree within the separate creator thread.
         In a thread so it doesn't block when the user switches the focused app
@@ -82,8 +94,18 @@ class A11yTree(Singleton):
             focusable = states.contains(pyatspi.STATE_FOCUSABLE)
             showing = states.contains(pyatspi.STATE_SHOWING)
 
-
-            INTERACTABLE = visible and showing and (sensitive or focusable)
+            # In an ideal world, we should only need to use focusable here. 
+            # However, many applications don't apply focusable on elements that 
+            # should be focusable, so it is better to check both and have too much
+            # instead of too little
+            INTERACTABLE: bool 
+            # these apps actually implements atspi properly, while most other apps do not
+            match root_application:
+                case "code":
+                    INTERACTABLE = visible and showing and (focusable)
+                # Firefox doesn't add focusable to certain dom elements that should be focusable.
+                case "firefox" | _ :
+                    INTERACTABLE= visible and showing and (focusable or sensitive)
 
             x = point.x
             y = point.y
@@ -93,18 +115,18 @@ class A11yTree(Singleton):
             name = accessible.get_name() 
             element = A11yElement(name, x, y, role, pid)
 
-            OFF_SCREEN = x < -2000 or y < -2000
+            # OFF_SCREEN = x < -2000 or y < -2000
 
             UNLABELED = name == ""
 
             EXISTS_ALREADY = A11yTree.element_exists(element)
 
-            if INTERACTABLE and not EXISTS_ALREADY and not OFF_SCREEN and not UNLABELED:
+            if INTERACTABLE and not EXISTS_ALREADY and not UNLABELED: #and not OFF_SCREEN
                 A11yTree._append_element(element)  
                 A11yTree._stash_accessible(element, accessible) 
 
             # if not EXISTS_ALREADY and not OFF_SCREEN and INTERACTABLE:
-            A11yTree._create(accessible)
+            A11yTree._create(root_application, accessible)
             
         
     @classmethod
@@ -122,21 +144,30 @@ class A11yTree(Singleton):
 
         start = time.time()
 
-        app, root = Desktop.getRoot()
-        app = "NULL" if app is None else app.get_name()
-
-
+        """
+        At the time window:activate is output, the old_app is currently still focused. 
+        So we need to look for the source of the window:activate event to find the new
+        focused app
+        """
+        old_app, old_root = Desktop.getRoot()
+        old_app = "NULL" if old_app is None else old_app.get_name()
 
         tree_action = "interrupting" if cls.constructor_handle else "starting"
-        logging.debug(f"Tree dump {tree_action} with {(event.type)} from {event.source} inside {root}")
+        logging.debug(f"Tree dump {tree_action} with {(event.type)} from {event.source} inside {old_app} with root: {old_root}")
+
+        new_app_name = event.source.get_application().get_name()
+
+        _, new_app_root = Desktop.getRoot(new_app_name)
 
         A11yTree.reset()
 
         assert cls.constructor_handle is None
 
-        A11yTree.constructor_handle = InterruptableThread(target=A11yTree._create, args=(root, ))
 
-    
+        # TODO: make this recusively return the elements instead of updating them in place. SInce 
+        # you want to start the dump inside the app where the window:activate is coming from i.e. the event.source, not the actual root at the time of the event
+        A11yTree.constructor_handle = InterruptableThread(target=A11yTree._create, args=(new_app_name, new_app_root, ))
+
         """
         We need to start then join the thread to have an interruptable blocking operation.
         If the user focused another window, we want to stop the construction and the block on
@@ -145,23 +176,30 @@ class A11yTree(Singleton):
         A11yTree.constructor_handle.start()
         A11yTree.constructor_handle.join()
         if A11yTree.constructor_handle.interrupted():
-            logging.debug(f"Tree dump interrupted for {app}")
+            logging.debug(f"Tree dump interrupted for {new_app_name}")
             return
         
         # Once the thread is done, get rid of the handle
         A11yTree.constructor_handle = None
 
-        # don't regenerate the hats if Firefox performed a psuedo focus where nothing actually changed on the screen
         FROM_INTERNAL_FRAME = event.source.getRole() == pyatspi.ROLE_FRAME
-        PSEUDO_UPDATE = len(A11yTree._elements) == 0 and event.type == pyatspi.EventType('focus')
-        if FROM_INTERNAL_FRAME:
-            logging.debug(f"Skipped tree dump for internal frame inside {app} with {len(A11yTree._elements)} elements")
+        if FROM_INTERNAL_FRAME and len(A11yTree._elements) == 0:
+            logging.debug(f"Skipped tree dump for internal frame inside {new_app_name} with no new elements")
             return
 
+        # don't regenerate the hats if Firefox performed a psuedo focus where nothing actually changed on the screen
+        PSEUDO_UPDATE = len(A11yTree._elements) == 0 and event.type == pyatspi.EventType('focus')
         if PSEUDO_UPDATE:
-            logging.debug(f"Skipped tree dump for pseudo update inside {app}.")
+            logging.debug(f"Skipped tree dump for pseudo update inside {new_app_name}.")
             return
         
+        # if A11yTree.cached_a11y_dump == A11yTree._elements:
+        #     logging.debug(f"Skipped tree dump for no change inside {app}.")
+        #     return
+        # save it in the cache for the next generation
+        else:
+            A11yTree.cached_a11y_dump = A11yTree._elements
+
         try:
             os.remove(config.TREE_OUTPUT_PATH)
         except:
