@@ -12,6 +12,7 @@ class InterruptableThread(threading.Thread):
     def __init__(self,  *args, **kwargs):
         super(InterruptableThread, self).__init__(*args, **kwargs)
         self._stop_event = threading.Event()
+        self._return = None
 
     def interrupt(self, log_message=""):
         if log_message:
@@ -20,6 +21,10 @@ class InterruptableThread(threading.Thread):
 
     def interrupted(self):
         return self._stop_event.is_set()
+    
+    def join(self, *args):
+        threading.Thread.join(self, *args)
+        return self._return
 
 
 def get_states(accessible_obj):

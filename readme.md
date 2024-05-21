@@ -16,7 +16,7 @@ _Note: This repository is a work in progress_
 
 ## Caveats
 
-- Many application don't implement atspi properly
+- Many application don't implement atspi properly, some not at all.
 - Some applications **need to be launched after our atspi client is initialized**
 
 ## Support

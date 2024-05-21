@@ -4,7 +4,6 @@ import pyatspi
 import json
 import os
 import logging
-import dataclasses
 from typing import ClassVar, Optional
 import sys # isort:skip
 sys.path.append(".") # isort:skip
@@ -46,14 +45,11 @@ class A11yTree(Singleton):
 
     constructor_handle: Optional[InterruptableThread] = None
 
-    cached_a11y_dump = None
+    cached_elements: Optional[list[A11yElement]] = None
     
-    _elements: ClassVar[list[A11yElement]] = []
-
     # Map our serializiable representation of an element to the actual Atspi element
-    # upon which actions can be invoked
-    _serialized_mapper: ClassVar[dict[A11yElement, pyatspi.Accessible]] = {}
-
+    # upon which actions can be invoked. Done for memory/io efficiency
+    serialized_mapper: ClassVar[dict[A11yElement, pyatspi.Accessible]] = {}
 
     @classmethod
     def get_accessible_from_element(cls, element: A11yElement):
@@ -61,25 +57,16 @@ class A11yTree(Singleton):
 
     @classmethod
     def _stash_accessible(cls, element: A11yElement, accessible: pyatspi.Accessible):
-        cls._serialized_mapper[element] = accessible
-
-    @staticmethod
-    def _append_element(element: A11yElement): 
-        A11yTree._elements.append(element)
-        
-    
-    @staticmethod
-    def element_exists(element: A11yElement):
-        return element in A11yTree._elements
+        cls.serialized_mapper[element] = accessible
       
     @classmethod
-    def _create(cls, root_application, root):
+    def get_elements(cls, parent_app: str, root, accumulator: list[A11yElement]) -> list[A11yElement]:
         """
         Recursive method for creating the a11y tree within the separate creator thread.
         In a thread so it doesn't block when the user switches the focused app
         """
         if not root or cls.constructor_handle.interrupted(): 
-            return
+            return accumulator
 
         for accessible in root: 
             accessible: pyatspi.Accessible
@@ -88,28 +75,26 @@ class A11yTree(Singleton):
             point = accessible.get_position(pyatspi.XY_SCREEN)
             states = accessible.get_state_set() 
             # https://docs.gtk.org/atspi2/enum.StateType.html
-                
             visible = states.contains(pyatspi.STATE_VISIBLE)
             sensitive = states.contains(pyatspi.STATE_SENSITIVE)
             focusable = states.contains(pyatspi.STATE_FOCUSABLE)
             showing = states.contains(pyatspi.STATE_SHOWING)
 
-            # In an ideal world, we should only need to use focusable here. 
-            # However, many applications don't apply focusable on elements that 
-            # should be focusable, so it is better to check both and have too much
-            # instead of too little
+            # According to atspi docs, we should only need to use focusable here. 
+            # However, many applications don't apply STATE_FOCUSABLE on elements that 
+            # should be focusable, so it is better to check both and be safe
             INTERACTABLE: bool 
             # these apps actually implements atspi properly, while most other apps do not
-            match root_application:
+            # TODO: add more apps / edge cases here
+            match parent_app:
                 case "code":
                     INTERACTABLE = visible and showing and (focusable)
-                # Firefox doesn't add focusable to certain dom elements that should be focusable.
+                # Firefox doesn't always add focusable to certain dom elements that should be focusable so sensitive is used instead
                 case "firefox" | _ :
                     INTERACTABLE= visible and showing and (focusable or sensitive)
 
             x = point.x
             y = point.y
-            # parent_application = accessible.get_application().get_name()
             pid = accessible.get_process_id()
             role = accessible.get_role_name()
             name = accessible.get_name() 
@@ -118,15 +103,12 @@ class A11yTree(Singleton):
             # OFF_SCREEN = x < -2000 or y < -2000
 
             UNLABELED = name == ""
-
-            EXISTS_ALREADY = A11yTree.element_exists(element)
+            EXISTS_ALREADY = element in accumulator
 
             if INTERACTABLE and not EXISTS_ALREADY and not UNLABELED: #and not OFF_SCREEN
-                A11yTree._append_element(element)  
                 A11yTree._stash_accessible(element, accessible) 
 
-            # if not EXISTS_ALREADY and not OFF_SCREEN and INTERACTABLE:
-            A11yTree._create(root_application, accessible)
+            return A11yTree.get_elements(parent_app, accessible, accumulator + [element])
             
         
     @classmethod
@@ -136,11 +118,11 @@ class A11yTree(Singleton):
             logging.debug("Construct handle removed")
             cls.constructor_handle = None
             
-        cls._serialized_mapper = {}
-        cls._elements = []
+        cls.serialized_mapper = {}
       
     @classmethod
     def dump(cls, event: AtspiEvent):
+        """Dump a serialized version of the a11y tree to the ipc file"""
 
         start = time.time()
 
@@ -163,10 +145,7 @@ class A11yTree(Singleton):
 
         assert cls.constructor_handle is None
 
-
-        # TODO: make this recusively return the elements instead of updating them in place. SInce 
-        # you want to start the dump inside the app where the window:activate is coming from i.e. the event.source, not the actual root at the time of the event
-        A11yTree.constructor_handle = InterruptableThread(target=A11yTree._create, args=(new_app_name, new_app_root, ))
+        A11yTree.constructor_handle = InterruptableThread(target=A11yTree.get_elements, args=(new_app_name, new_app_root, []))
 
         """
         We need to start then join the thread to have an interruptable blocking operation.
@@ -174,7 +153,8 @@ class A11yTree(Singleton):
         the creation of the new tree for the new window
         """
         A11yTree.constructor_handle.start()
-        A11yTree.constructor_handle.join()
+        elements = A11yTree.constructor_handle.join()
+        assert elements is not None
         if A11yTree.constructor_handle.interrupted():
             logging.debug(f"Tree dump interrupted for {new_app_name}")
             return
@@ -183,22 +163,22 @@ class A11yTree(Singleton):
         A11yTree.constructor_handle = None
 
         FROM_INTERNAL_FRAME = event.source.getRole() == pyatspi.ROLE_FRAME
-        if FROM_INTERNAL_FRAME and len(A11yTree._elements) == 0:
+        if FROM_INTERNAL_FRAME and len(elements) == 0:
             logging.debug(f"Skipped tree dump for internal frame inside {new_app_name} with no new elements")
             return
 
         # don't regenerate the hats if Firefox performed a psuedo focus where nothing actually changed on the screen
-        PSEUDO_UPDATE = len(A11yTree._elements) == 0 and event.type == pyatspi.EventType('focus')
+        PSEUDO_UPDATE = len(elements) == 0 and event.type == pyatspi.EventType('focus')
         if PSEUDO_UPDATE:
             logging.debug(f"Skipped tree dump for pseudo update inside {new_app_name}.")
             return
         
-        # if A11yTree.cached_a11y_dump == A11yTree._elements:
+        # if A11yTree.cached_a11y_dump == elements:
         #     logging.debug(f"Skipped tree dump for no change inside {app}.")
         #     return
         # save it in the cache for the next generation
         else:
-            A11yTree.cached_a11y_dump = A11yTree._elements
+            A11yTree.cached_elements = elements
 
         try:
             os.remove(config.TREE_OUTPUT_PATH)
@@ -208,14 +188,14 @@ class A11yTree(Singleton):
         with open(config.TREE_OUTPUT_PATH, 'w') as outfile:
 
             entire_tree_serialized = [
-                element.to_dict() for element in A11yTree._elements]
+                element.to_dict() for element in elements]
 
 
             json.dump(entire_tree_serialized, outfile)
 
         delta = round(time.time() - start, 2)
 
-        logging.debug(f"Dumped tree with {len(A11yTree._elements)} elements in {delta} seconds")
+        logging.debug(f"Dumped tree with {len(elements)} elements in {delta} seconds")
 
 
 
