@@ -2,9 +2,9 @@
 
 <p align="center">Click linux desktop gui elements by dictating a label </p>
 
-<p align="center" style="font-style: italic;"> This repository is a work in progress</p>
-
 ## Setup
+
+_Note: This repository is a work in progress_
 
 1. Clone this repo into your Talon user directory
 2. Install the `python3-pyatspi` package
@@ -21,6 +21,4 @@
 
 ## Support
 
-I offer accessibility software consulting services. Please [reach out to me](https://colton.place/contact/) if you have a question about Talon, screen readers, front-end design, atspi, or any other accessibility software. 
-
-
+I offer accessibility software consulting services. Please [reach out to me](https://colton.place/contact/) if you have a question about Talon, screen readers, front-end design, atspi, or any other accessibility software.
