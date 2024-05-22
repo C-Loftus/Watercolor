@@ -14,7 +14,7 @@ docker:
 
 .PHONY: test
 test: 
-	/usr/bin/python3 -m pytest ./.tests/test_lib.py -rP
+	/usr/bin/python3 -m pytest ./.tests -rP
 
 .PHONY: dev
 dev:

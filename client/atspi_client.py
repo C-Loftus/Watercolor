@@ -20,8 +20,9 @@ class ClientResponse(enum.Enum):
 
 class ResponseBundle(TypedDict):
     client: ClientResponse
-    # nullable if client fails before connecting to server 
+    # nullable if client fails before connecting to server
     server: Optional[ServerResponse]
+
 
 def handle_ipc_result(
     client_response: ClientResponse,
@@ -34,11 +35,13 @@ def handle_ipc_result(
 
     match client_response:
         case (
-            ClientResponse.NO_RESPONSE
-            | ClientResponse.TIMED_OUT
-            | ClientResponse.GENERAL_ERROR,
-            _,
-        ) as communication_error:
+            (
+                ClientResponse.NO_RESPONSE
+                | ClientResponse.TIMED_OUT
+                | ClientResponse.GENERAL_ERROR,
+                _,
+            ) as communication_error
+        ):
             raise RuntimeError(
                 f"Clientside {communication_error=} communicating with screenreader extension"
             )
@@ -47,29 +50,30 @@ def handle_ipc_result(
             pass
 
     cmd = server_response["command"]
-    match (server_response["result"]):
-
+    match server_response["result"]:
         case ServerStatusResult.SUCCESS:
             # empty case is here for exhaustiveness
             pass
         case ServerStatusResult.INVALID_COMMAND_ERROR:
             raise ValueError(f"Invalid command {cmd} sent to atspi server")
         case ServerStatusResult.JSON_ENCODE_ERROR:
-            raise ValueError(
-                "Invalid JSON payload sent from client to atspi server"
-            )
+            raise ValueError("Invalid JSON payload sent from client to atspi server")
         case (
-            ServerStatusResult.INTERNAL_SERVER_ERROR
-            | ServerStatusResult.RUNTIME_ERROR
-        ) as error:
+            (
+                ServerStatusResult.INTERNAL_SERVER_ERROR
+                | ServerStatusResult.RUNTIME_ERROR
+            ) as error
+        ):
             raise RuntimeError(f"Server {error.value} processing command '{cmd}'")
-        
+
         case ServerStatusResult.NO_ACTION_INTERFACE_ERROR:
-            raise ValueError(f"The targeted element is inaccessible and does not support running a11y actions on it")
+            raise ValueError(
+                "The targeted element is inaccessible and does not support running a11y actions on it"
+            )
 
         case ServerStatusResult.NO_ACTION_SUPPORTED_ERROR:
             raise ValueError(f"Command '{cmd}' not supported by targeted a11y element")
-        
+
         case None:
             raise RuntimeError(f"Client never connected to server for '{cmd}'")
         case _:
@@ -80,13 +84,15 @@ def handle_ipc_result(
 class ATSPIClientActions:
     def send_watercolor_command(
         payload: dict[str, str],
-    ) :
+    ):
         """Sends a single command to the screenreader"""
 
         # We can only add client side verification for the command name, not the element
         if payload["command"] not in get_args(WatercolorCommand):
-            raise ValueError(f"Caught invalid command '{payload['command']}' before sending to atspi server")
-        
+            raise ValueError(
+                f"Caught invalid command '{payload['command']}' before sending to atspi server"
+            )
+
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(0.2)
         encoded = json.dumps(payload).encode()
@@ -113,7 +119,9 @@ class ATSPIClientActions:
 
                 response["server"] = {
                     "command": server_response["command"],
-                    "result": ServerStatusResult.generate_from(server_response["result"])
+                    "result": ServerStatusResult.generate_from(
+                        server_response["result"]
+                    ),
                 }
             except KeyError as enum_decode_error:
                 print("Error decoding enum", enum_decode_error, response)

@@ -1,14 +1,15 @@
 import pytest
 import sys
+
 # Talon autoloads python files unless they start with "." and we want it to ignore the server directory
 # Thus, we import this way since we can't import packages normally that start with a "."
 sys.path.append(".atspi-server")
-from lib import Singleton, InterruptableThread # type: ignore
+from lib import Singleton, InterruptableThread  # type: ignore
 
 from shared.shared_types import ServerStatusResult
 
+
 def test_singleton():
-    
     class TestSingleton(Singleton):
         pass
 
@@ -18,7 +19,11 @@ def test_singleton():
 
 def test_server_status_result():
     assert ServerStatusResult.generate_from("success") == ServerStatusResult.SUCCESS
-    assert ServerStatusResult.generate_from("noInterfaceError") == ServerStatusResult.NO_ACTION_INTERFACE_ERROR
+    assert (
+        ServerStatusResult.generate_from("noInterfaceError")
+        == ServerStatusResult.NO_ACTION_INTERFACE_ERROR
+    )
+
 
 def test_thread():
     import time
@@ -35,7 +40,7 @@ def test_thread():
     t.start()
     t.interrupt()
     result = t.join()
-    assert t.interrupted() == True
+    assert t.interrupted() is True
     assert result == 999
     end = time.time()
     assert end - start < 2
