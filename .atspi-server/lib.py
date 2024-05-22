@@ -31,7 +31,7 @@ def get_states(accessible_obj):
 
     state_list = []
     for state in list(accessible_obj.get_state_set().get_states()):
-
+        # atspi does not have a pretty print for enums so we do it manually
         state_str = str(state).split("enum ")[1].split("of type")[0]
 
         state_list.append(state_str)

@@ -1,3 +1,4 @@
 *log.txt
 *.log
 __pycache__
+.pytest_cache/

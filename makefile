@@ -10,3 +10,11 @@ run:
 .PHONY: docker
 docker:
 	cd .atspi-server && docker build -t atspi-server .; docker run -it atspi-server
+
+
+.PHONY: test
+test: dev
+	/usr/bin/python3 -m pytest .atspi-server/tests
+
+dev:
+	/usr/bin/python3 -m pip install pytest
