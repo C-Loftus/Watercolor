@@ -5,23 +5,33 @@ import traceback
 from datetime import datetime
 from typing import Optional
 import pyatspi
+
 # We need to add the root directory to the path for the shared module
-import sys # isort:skip
-sys.path.append(".") # isort:skip
-from shared import config # isort:skip
-from shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse, ClientPayload, A11yElement # isort:skip
-from create_coords import A11yTree 
+import sys  # isort:skip
+
+sys.path.append(".")  # isort:skip
+from shared import config  # isort:skip
+from shared.shared_types import (
+    WatercolorCommand,
+    ServerStatusResult,
+    ServerResponse,
+    ClientPayload,
+    A11yElement,
+)  # isort:skip
+from create_coords import A11yTree
 from lib import Singleton, inspect_element
 import logging
 
 
-def handle_command(payload: ClientPayload) -> tuple[WatercolorCommand, ServerStatusResult]:
+def handle_command(
+    payload: ClientPayload,
+) -> tuple[WatercolorCommand, ServerStatusResult]:
     logging.debug(f"Recieved {payload}")
     print(f"Recieved {payload}")
     command = payload["command"]
-    
-    element = A11yElement.from_dict(payload["target"])        
-    atspi_element: pyatspi.Accessible = A11yTree.get_accessible_from_element(element) 
+
+    element = A11yElement.from_dict(payload["target"])
+    atspi_element: pyatspi.Accessible = A11yTree.element_mapper.get(element, None)
 
     if not atspi_element:
         print(f"Tried to click an element: {element}, but it doesn't exist in the tree")
@@ -32,22 +42,27 @@ def handle_command(payload: ClientPayload) -> tuple[WatercolorCommand, ServerSta
             actions = atspi_element.get_action_iface()
 
             if not actions:
-                print(f"No action interface found for element {atspi_element.get_name()}, with role: {atspi_element.get_role_name()}")
+                print(
+                    f"No action interface found for element {atspi_element.get_name()}, with role: {atspi_element.get_role_name()}"
+                )
                 return command, ServerStatusResult.NO_ACTION_INTERFACE_ERROR
 
             num_actions = actions.get_n_actions()
 
             if num_actions == 0:
-                print(f"No actions found within {[actions.get_action_name(i) for i in range(num_actions)]}")
+                print(
+                    f"No actions found within {[actions.get_action_name(i) for i in range(num_actions)]}"
+                )
                 return command, ServerStatusResult.NO_ACTION_SUPPORTED_ERROR
-            
 
             for i in range(num_actions):
                 description = actions.get_action_description(i)
                 name = actions.get_action_name(i)
-                print(f"{i}: {description=} ({name=})")
+                print(f"Action {i}: {description=}, {name=}")
 
-            print(f"Running primary action {actions.get_action_name(0)} with description {actions.get_action_description(0)}")
+            print(
+                f"Running primary action {actions.get_action_name(0)} with description {actions.get_action_description(0)}"
+            )
             actions.do_action(PRIMARY_ACTION := 0)
 
         case "inspect":
@@ -59,43 +74,41 @@ def handle_command(payload: ClientPayload) -> tuple[WatercolorCommand, ServerSta
 
 
 class IPC_Server(Singleton):
-
     running = False
     server_socket: socket.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     client_socket: Optional[socket.socket] = None
 
     @classmethod
     def handle_client(cls):
-
         data = cls.client_socket.recv(1024)
 
         response_for_client: ServerResponse = {
             "command": None,
-            "result": ServerStatusResult.RUNTIME_ERROR.value
+            "result": ServerStatusResult.RUNTIME_ERROR.value,
         }
 
         try:
             client_request: ClientPayload = json.loads(data.decode().strip())
             command, result = handle_command(client_request)
             response_for_client: ServerResponse = {
-            "command": command,
-            "result": result.value
+                "command": command,
+                "result": result.value,
             }
 
         except json.JSONDecodeError as e:
             print(f"RECEIVED INVALID JSON FROM CLIENT: {e}")
             response_for_client: ServerResponse = {
-            "result": ServerStatusResult.JSON_ENCODE_ERROR.value
+                "result": ServerStatusResult.JSON_ENCODE_ERROR.value
             }
 
         finally:
             if cls.client_socket.fileno() != -1:
-                cls.client_socket.sendall(json.dumps(response_for_client).encode("utf-8"))
-
+                cls.client_socket.sendall(
+                    json.dumps(response_for_client).encode("utf-8")
+                )
 
     @classmethod
     def listen(cls):
-        
         try:
             cls.server_socket.bind(config.SOCKET_PATH)
         except OSError as e:
@@ -112,7 +125,6 @@ class IPC_Server(Singleton):
 
         while cls.running:
             try:
-                
                 # make this atomic so we exit if there is an update after checking
                 if cls.server_socket and cls.server_socket.fileno() != -1:
                     try:
@@ -128,7 +140,7 @@ class IPC_Server(Singleton):
                         break
 
                     cls.handle_client()
-                    
+
             # If the socket times out, we just want to keep looping
             except socket.timeout:
                 pass
@@ -151,19 +163,21 @@ class IPC_Server(Singleton):
 
     @classmethod
     def stop(cls):
-
         # Don't even try to hold the lock if everything has already been cleaned up from the other thread
         if not cls.running:
-            if not cls.client_socket or cls.client_socket.fileno() == -1 and \
-                not cls.server_socket or cls.server_socket.fileno() == -1:
+            if (
+                not cls.client_socket
+                or cls.client_socket.fileno() == -1
+                and not cls.server_socket
+                or cls.server_socket.fileno() == -1
+            ):
                 return
 
         if cls.client_socket and cls.client_socket.fileno() != -1:
             cls.client_socket.close()
-        
+
         cls.running = False
         if cls.server_socket.fileno() != -1:
             cls.server_socket.close()
 
         print("TALON SERVER STOPPED")
-

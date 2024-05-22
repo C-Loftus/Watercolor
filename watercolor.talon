@@ -3,10 +3,13 @@ os: linux
 # and tag: browser
 -
 
-(watercolor | color) toggle:
+^(watercolor | color) toggle$:
     user.watercolor_toggle_hats()
 
-touch <user.watercolor_hint>:
+color refresh:
+    user.watercolor_refresh()
+
+color <user.watercolor_hint>:
     user.watercolor_action("click", user.watercolor_hint)
 
 # Dump the a11y element to the log for debugging purposes

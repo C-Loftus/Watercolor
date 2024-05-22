@@ -6,13 +6,19 @@ import pyatspi
 from create_coords import A11yTree
 from lib import init_logger, AtspiListenableEvent
 import sys
+
 sys.path.append(".")
 import shared.config as config
 
-def main():
 
+def main():
     # Clean up old logs and ipc files
-    for file in ["atspi_log.txt", config.TREE_OUTPUT_PATH,  config.SOCKET_PATH, "talon_server_error.log"]:
+    for file in [
+        "atspi_log.txt",
+        config.TREE_OUTPUT_PATH,
+        config.SOCKET_PATH,
+        "talon_server_error.log",
+    ]:
         if os.path.exists(file):
             os.unlink(file)
 
@@ -24,14 +30,35 @@ def main():
 
         # Don't watch window:deactivate since it will trigger after the activate and reset the hints
         event: AtspiListenableEvent
-        for event in ["window:activate", "window:create", "window:destroy", "window:maximize", "window:minimize", "window:move", "object:visible-data-changed"]:
+        for event in [
+            "window:activate",
+            "window:create",
+            "window:destroy",
+            "window:maximize",
+            "window:minimize",
+            "window:move",
+            # Can't use the object changed events since the tree sometimes does child changes
+            # that don't actually affect the user interaction. Sometimes it outputs many changes and
+            # triggers and infinite loop
+            # "object:children-changed:add",
+            # "object:children-changed:remove",
+            "object:visible-data-changed",
+            "object:row-reordered",
+            "object:column-reordered",
+            "object:state-changed:expanded",
+            "document:page-changed",
+            "document:load-complete",
+            "document:page-changed",
+            "document:attributes-changed",
+            "document:reload",
+        ]:
             pyatspi.Registry.registerEventListener(A11yTree.dump, event)
 
-        pyatspi.Registry.start()        
+        pyatspi.Registry.start()
 
     except KeyboardInterrupt:
         IPC_Server.stop()
-        
-    
+
+
 if __name__ == "__main__":
     main()

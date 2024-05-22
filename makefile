@@ -13,8 +13,9 @@ docker:
 
 
 .PHONY: test
-test: dev
-	/usr/bin/python3 -m pytest tests/test_lib.py
+test: 
+	/usr/bin/python3 -m pytest ./.tests/test_lib.py -rP
 
+.PHONY: dev
 dev:
 	/usr/bin/python3 -m pip install pytest

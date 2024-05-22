@@ -9,9 +9,7 @@ os: linux
 """
 
 
-@mod.capture(
-    rule="<user.letter> <user.letter>"
-)
+@mod.capture(rule="<user.letter> <user.letter>")
 def watercolor_hint(m) -> str:
     # remove all spaces inside the hint
     return "".join(m).replace(" ", "").upper()
@@ -19,6 +17,12 @@ def watercolor_hint(m) -> str:
 
 @mod.action_class
 class Actions:
+    def watercolor_refresh():
+        """Refresh the screen state"""
+        WatercolorState.enabled = True
+        ScreenLabels.clear()
+        ScreenLabels.render()
+
     def watercolor_toggle_hats():
         """Toggle showing hats over every a11y element each time the screen state changes"""
 
@@ -31,7 +35,7 @@ class Actions:
             WatercolorState.enabled = True
             print("Watercolor enabled")
             ScreenLabels.render()
-            
+
     def watercolor_toggle_debug():
         """Toggle showing the debug hats over every a11y element each time the screen state changes"""
 
@@ -42,11 +46,12 @@ class Actions:
         try:
             payload = {
                 "command": "",
-                "target": ScreenLabels.get_element_from_label(target_label).to_dict()
+                "target": ScreenLabels.get_element_from_label(target_label).to_dict(),
             }
         except KeyError:
-            raise KeyError(f"Error: {target_label} not found in", ScreenLabels.element_mapping)
-
+            raise KeyError(
+                f"Error: {target_label} not found in", ScreenLabels.element_mapping
+            )
 
         if action_name == "click":
             payload["command"] = "click"
@@ -56,5 +61,3 @@ class Actions:
             raise Exception(f"Invalid action: {action_name}")
         print(payload)
         actions.user.send_watercolor_command(payload)
-
-    
