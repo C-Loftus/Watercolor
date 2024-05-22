@@ -14,7 +14,7 @@ docker:
 
 .PHONY: test
 test: dev
-	/usr/bin/python3 -m pytest .atspi-server/tests
+	/usr/bin/python3 -m pytest tests/test_lib.py
 
 dev:
 	/usr/bin/python3 -m pip install pytest
