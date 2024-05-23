@@ -16,6 +16,11 @@ docker:
 test: 
 	/usr/bin/python3 -m pytest ./.tests/test_server.py -rP
 
+.PHONY: ci
+ci:
+	gh act
+
+
 .PHONY: dev
 dev:
 	/usr/bin/python3 -m pip install pytest
