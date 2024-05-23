@@ -75,11 +75,15 @@ def main():
             case _ as e:
                 logging.error(f"Error initializing Atspi with error code: {e}")
 
-        server_thread.join()
-    except (RuntimeError, KeyboardInterrupt):
+        interruptable_main = threading.Thread(target=Atspi.Event.main)
+        interruptable_main.start()
+        interruptable_main.join()
+
+    except (RuntimeError, KeyboardInterrupt) as e:
         for listener in listeners:
             event = listeners[listener]
             Atspi.EventListener.deregister(listener, event)
+        Atspi.Event.quit()
 
         IPC_Server.stop()
 

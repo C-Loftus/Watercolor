@@ -47,7 +47,7 @@ class Desktop(Singleton):
 
         else:
             logging.debug(
-                f"No root window found among {[app.get_name() for app in desktop]}"
+                f"No root window found among {[desktop.get_child_at_index(i).get_name() for i in range(desktop_child_count)]}"
             )
 
         return (None, None)
@@ -135,7 +135,6 @@ class A11yTree(Singleton):
     @classmethod
     def dump(cls, event: AtspiEvent):
         """Dump a serialized version of the a11y tree to the ipc file"""
-        print("fdsfds")
         start = time.time()
 
         """
@@ -156,6 +155,10 @@ class A11yTree(Singleton):
         _, new_app_root = Desktop.getRoot(new_app_name)
 
         A11yTree.reset()
+
+        # remove all cached states to make sure we are getting the latest state for each element
+        if new_app_root:
+            new_app_root.clear_cache()
 
         A11yTree.constructor_handle = InterruptableThread(
             target=A11yTree.get_elements, args=(new_app_name, new_app_root, {})
@@ -182,7 +185,7 @@ class A11yTree(Singleton):
                 f"Skipped tree dump for internal frame inside {new_app_name} with {len(elements)} elements"
             )
             return
-        elif len(elements) == 0 and event.type == Atspi.EventType("focus"):
+        elif len(elements) == 0 and event.type == "object:state-changed:focused":
             logging.debug(f"Skipped tree dump for pseudo update inside {new_app_name}.")
             return
 

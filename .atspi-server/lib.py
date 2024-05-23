@@ -56,7 +56,7 @@ class AtspiEvent:
 
     detail1: int
     detail2: int
-    type: any
+    type: str
     sender: Atspi.Accessible
     source: Atspi.Accessible
 
@@ -129,7 +129,7 @@ def init_logger():
 
 
 def inspect_element(accessible: Atspi.Accessible):
-    point = accessible.get_position(Atspi.CoordType.Screen)
+    point = accessible.get_position(Atspi.CoordType.SCREEN)
     x = point.x
     y = point.y
     states = get_states(accessible)
