@@ -1,4 +1,5 @@
-import json, enum
+import json
+import enum
 import socket
 import threading
 from typing import Optional, TypedDict, assert_never, get_args

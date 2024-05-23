@@ -1,10 +1,14 @@
+import gi
+
+gi.require_version("Atspi", "2.0")
+from gi.repository import Atspi
+
 import json
 import socket
 import time
 import traceback
 from datetime import datetime
 from typing import Optional
-import pyatspi
 
 # We need to add the root directory to the path for the shared module
 import sys  # isort:skip
@@ -31,7 +35,7 @@ def handle_command(
     command = payload["command"]
 
     element = A11yElement.from_dict(payload["target"])
-    atspi_element: pyatspi.Accessible = A11yTree.element_mapper.get(element, None)
+    atspi_element: Atspi.Accessible = A11yTree.element_mapper.get(element, None)
 
     if not atspi_element:
         print(f"Tried to click an element: {element}, but it doesn't exist in the tree")

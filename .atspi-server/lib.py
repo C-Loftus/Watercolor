@@ -1,5 +1,8 @@
 from dataclasses import dataclass
-import pyatspi
+import gi
+
+gi.require_version("Atspi", "2.0")
+from gi.repository import Atspi
 from typing import Literal
 import threading
 import logging
@@ -53,9 +56,9 @@ class AtspiEvent:
 
     detail1: int
     detail2: int
-    type: pyatspi.appevent.EventType
-    sender: pyatspi.Accessible
-    source: pyatspi.Accessible
+    type: any
+    sender: Atspi.Accessible
+    source: Atspi.Accessible
 
     any_data: any
 
@@ -125,8 +128,8 @@ def init_logger():
     logging.info("Initializing Watercolor")
 
 
-def inspect_element(accessible: pyatspi.Accessible):
-    point = accessible.get_position(pyatspi.XY_SCREEN)
+def inspect_element(accessible: Atspi.Accessible):
+    point = accessible.get_position(Atspi.CoordType.Screen)
     x = point.x
     y = point.y
     states = get_states(accessible)
@@ -157,6 +160,15 @@ AtspiListenableEvent = Literal[
     "document:load-stopped",
     "document:page-changed",
     "mouse:button",
+    "focus",
+    "mouse:abs",
+    "mouse:rel",
+    "mouse:b1p",
+    "mouse:b1r",
+    "mouse:b2p",
+    "mouse:b2r",
+    "mouse:b3p",
+    "mouse:b3r",
     "object:announcement",
     "object:active-descendant-changed",
     "object:attributes-changed",

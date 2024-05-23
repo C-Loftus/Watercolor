@@ -1,5 +1,7 @@
-import gi.repository
-import pyatspi
+import gi
+
+gi.require_version("Atspi", "2.0")
+from gi.repository import Atspi
 import json
 import os
 import logging
@@ -17,16 +19,24 @@ import time
 class Desktop(Singleton):
     @staticmethod
     def getRoot(specific_app: Optional[str] = None):
-        desktop = pyatspi.Registry.getDesktop(0)
-        for app in desktop:
-            for window in app:
+        desktop = Atspi.get_desktop(0)
+
+        # atspi gobject introspection doesn't support iterators
+        desktop_child_count = desktop.get_child_count()
+        for i in range(desktop_child_count):
+            app = desktop.get_child_at_index(i)
+
+            window_count = app.get_child_count()
+            for j in range(window_count):
+                window = app.get_child_at_index(j)
+
                 states = get_states(window)
-                ACTIVE = window.getState().contains(pyatspi.STATE_ACTIVE)
+                ACTIVE = window.get_state_set().contains(Atspi.StateType.ACTIVE)
                 # Active should not be used for objects which have State::Focusable or State::Selectable:
                 # Those objects should use State::Focused and State::Selected respectively.
 
-                FOCUSABLE = window.getState().contains(pyatspi.STATE_FOCUSED)
-                SELECTABLE = window.getState().contains(pyatspi.STATE_SELECTED)
+                FOCUSABLE = window.get_state_set().contains(Atspi.StateType.FOCUSED)
+                SELECTABLE = window.get_state_set().contains(Atspi.StateType.SELECTED)
 
                 if ACTIVE:
                     # logging.debug(f"{app.get_name()} {states}")
@@ -46,11 +56,11 @@ class Desktop(Singleton):
 class A11yTree(Singleton):
     constructor_handle: Optional[InterruptableThread] = None
 
-    element_mapper: Optional[dict[A11yElement, pyatspi.Accessible]] = None
+    element_mapper: Optional[dict[A11yElement, Atspi.Accessible]] = None
 
     @classmethod
     def get_elements(
-        cls, parent_app: str, root, accumulator: dict[A11yElement : pyatspi.Accessible]
+        cls, parent_app: str, root, accumulator: dict[A11yElement : Atspi.Accessible]
     ) -> list[A11yElement]:
         """
         Recursive method for creating the a11y tree within the separate creator thread.
@@ -60,18 +70,18 @@ class A11yTree(Singleton):
             return accumulator
 
         try:
-            for accessible in root:
-                accessible: pyatspi.Accessible
+            for i in range(root.get_child_count()):
+                accessible: Atspi.Accessible = root.get_child_at_index(i)
                 if not accessible:
                     continue
 
-                point = accessible.get_position(pyatspi.XY_SCREEN)
+                point = accessible.get_position(Atspi.CoordType.SCREEN)
                 states = accessible.get_state_set()
                 # https://docs.gtk.org/atspi2/enum.StateType.html
-                visible = states.contains(pyatspi.STATE_VISIBLE)
-                sensitive = states.contains(pyatspi.STATE_SENSITIVE)
-                focusable = states.contains(pyatspi.STATE_FOCUSABLE)
-                showing = states.contains(pyatspi.STATE_SHOWING)
+                visible = states.contains(Atspi.StateType.VISIBLE)
+                sensitive = states.contains(Atspi.StateType.SENSITIVE)
+                focusable = states.contains(Atspi.StateType.FOCUSABLE)
+                showing = states.contains(Atspi.StateType.SHOWING)
 
                 # According to atspi docs, we should only need to use focusable here.
                 # However, many applications don't apply STATE_FOCUSABLE on elements that
@@ -125,7 +135,7 @@ class A11yTree(Singleton):
     @classmethod
     def dump(cls, event: AtspiEvent):
         """Dump a serialized version of the a11y tree to the ipc file"""
-
+        print("fdsfds")
         start = time.time()
 
         """
@@ -158,7 +168,7 @@ class A11yTree(Singleton):
         """
         A11yTree.constructor_handle.start()
 
-        elements: dict[A11yElement, pyatspi.Accessible] = (
+        elements: dict[A11yElement, Atspi.Accessible] = (
             A11yTree.constructor_handle.join()
         )
 
@@ -167,12 +177,12 @@ class A11yTree(Singleton):
         if A11yTree.constructor_handle.interrupted():
             logging.debug(f"Tree dump interrupted for {new_app_name}")
             return
-        elif event.source.getRole() == pyatspi.ROLE_FRAME and len(elements) == 0:
+        elif event.source.get_role() == Atspi.Role.FRAME and len(elements) == 0:
             logging.debug(
                 f"Skipped tree dump for internal frame inside {new_app_name} with {len(elements)} elements"
             )
             return
-        elif len(elements) == 0 and event.type == pyatspi.EventType("focus"):
+        elif len(elements) == 0 and event.type == Atspi.EventType("focus"):
             logging.debug(f"Skipped tree dump for pseudo update inside {new_app_name}.")
             return
 

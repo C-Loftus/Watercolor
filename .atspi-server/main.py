@@ -1,14 +1,17 @@
-import pyatspi.registry
-
 from api_server import IPC_Server
-import threading, os
-import pyatspi
+import threading
+import os
+import gi
+
+gi.require_version("Atspi", "2.0")
+from gi.repository import Atspi
 from create_coords import A11yTree
 from lib import init_logger, AtspiListenableEvent
 import sys
 
 sys.path.append(".")
 import shared.config as config
+import logging
 
 
 def main():
@@ -25,8 +28,12 @@ def main():
     init_logger()
 
     try:
-        server_thread = threading.Thread(target=IPC_Server.listen)
+        server_thread = threading.Thread(
+            target=IPC_Server.listen,
+        )
         server_thread.start()
+
+        listeners = {}
 
         # Don't watch window:deactivate since it will trigger after the activate and reset the hints
         event: AtspiListenableEvent
@@ -46,17 +53,34 @@ def main():
             "object:row-reordered",
             "object:column-reordered",
             "object:state-changed:expanded",
+            "object:state-changed:focused",  # Used for firefox tab switching
             "document:page-changed",
             "document:load-complete",
             "document:page-changed",
             "document:attributes-changed",
             "document:reload",
         ]:
-            pyatspi.Registry.registerEventListener(A11yTree.dump, event)
+            listener: Atspi.EventListener = Atspi.EventListener.new(A11yTree.dump)
+            listeners[listener] = event
+            Atspi.EventListener.register(listener, event)
 
-        pyatspi.Registry.start()
+        res = Atspi.init()
+        match res:
+            case 0 as INITIALIZED:  # noqa: F841
+                logging.info("Atspi initialized")
+            case 1 as ALREADY_INITIALIZED:  # noqa: F841
+                logging.error(
+                    "Atspi does need to be initialized since it was already done"
+                )
+            case _ as e:
+                logging.error(f"Error initializing Atspi with error code: {e}")
 
-    except KeyboardInterrupt:
+        server_thread.join()
+    except (RuntimeError, KeyboardInterrupt):
+        for listener in listeners:
+            event = listeners[listener]
+            Atspi.EventListener.deregister(listener, event)
+
         IPC_Server.stop()
 
 
