@@ -46,9 +46,11 @@ def handle_ipc_result(
             raise RuntimeError(
                 f"Clientside {communication_error=} communicating with screenreader extension"
             )
-        case (ClientResponse.SUCCESS, _):
+        case (ClientResponse.SUCCESS):
             # empty case for pyright exhaustiveness
             pass
+        case _:
+            assert_never(client_response)
 
     cmd = server_response["command"]
     match server_response["result"]:

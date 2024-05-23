@@ -6,7 +6,7 @@ import sys
 sys.path.append(".atspi-server")
 from lib import Singleton, InterruptableThread  # type: ignore
 
-from shared.shared_types import ServerStatusResult
+from shared.shared_types import ServerStatusResult, A11yElement
 
 
 def test_singleton():
@@ -20,7 +20,7 @@ def test_singleton():
 def test_server_status_result():
     assert ServerStatusResult.generate_from("success") == ServerStatusResult.SUCCESS
     assert (
-        ServerStatusResult.generate_from("noInterfaceError")
+        ServerStatusResult.generate_from("noActionInterfaceError")
         == ServerStatusResult.NO_ACTION_INTERFACE_ERROR
     )
 
@@ -44,3 +44,17 @@ def test_thread():
     assert result == 999
     end = time.time()
     assert end - start < 2
+
+
+def test_serialization():
+    elem = A11yElement("test", 0, 0, "test", 0)
+    dict_representation = elem.to_dict()
+
+    assert A11yElement.from_dict(dict_representation) == elem
+    assert dict_representation == {
+        "name": "test",
+        "x": 0,
+        "y": 0,
+        "role": "test",
+        "pid": 0,
+    }

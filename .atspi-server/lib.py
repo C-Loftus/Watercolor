@@ -23,12 +23,12 @@ class InterruptableThread(threading.Thread):
         if self._target:
             self._return_value = self._target(*self._args, **self._kwargs)
 
+    # return the value of the thread when it is finished
     def join(self, *args, **kwargs):
         super().join(*args, **kwargs)
         return self._return_value
 
     def interrupt(self, log_message=""):
-        print("interrupting")
         if log_message:
             logging.debug(log_message)
         self._stop_event.set()

@@ -7,8 +7,7 @@
 _Note: This repository is a work in progress_
 
 1. Clone this repo into your Talon user directory
-2. Install the `python3-pyatspi` package
-   - (may be named different depending on your package manager)
+2. Install the `libgirepository1.0-dev` and `libgir1.2-atspi-2.0` packages
 3. Run `make run` to start the atspi server.
 4. Launch Talon
 5. Say `color toggle` to add colored hats over a11y elements

@@ -1,6 +1,7 @@
 from talon import Module, Context, actions
 import dataclasses, json
 from .renderer import WatercolorState, ScreenLabels, renderElementStyling, A11yTree
+from ..shared.shared_types import WatercolorCommand
 
 mod = Module()
 ctx = Context()
@@ -41,7 +42,7 @@ class Actions:
 
         WatercolorState.debug = not WatercolorState.debug
 
-    def watercolor_action(action_name: str, target_label: str):
+    def watercolor_action(action_name: WatercolorCommand, target_label: str):
         """Apply the specified element to the specified target"""
         try:
             payload = {
@@ -53,11 +54,10 @@ class Actions:
                 f"Error: {target_label} not found in", ScreenLabels.element_mapping
             )
 
-        if action_name == "click":
-            payload["command"] = "click"
-        elif action_name == "inspect":
-            payload["command"] = "inspect"
-        else:
-            raise Exception(f"Invalid action: {action_name}")
+        match action_name:
+            case "click" | "inspect" as valid_action:
+                payload["command"] = valid_action
+            case _:
+                raise Exception(f"Invalid action: {action_name}")
         print(payload)
         actions.user.send_watercolor_command(payload)

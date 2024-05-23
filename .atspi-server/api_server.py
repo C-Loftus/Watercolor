@@ -67,7 +67,7 @@ def handle_command(
             print(
                 f"Running primary action {actions.get_action_name(0)} with description {actions.get_action_description(0)}"
             )
-            actions.do_action(PRIMARY_ACTION := 0)
+            actions.do_action(PRIMARY_ACTION := 0)  # noqa: F841
 
         case "inspect":
             inspect_element(atspi_element)

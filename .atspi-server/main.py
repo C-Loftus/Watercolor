@@ -35,10 +35,11 @@ def main():
 
         listeners = {}
 
-        # Don't watch window:deactivate since it will trigger after the activate and reset the hints
-        event: AtspiListenableEvent
-        for event in [
+        # Only register events that change the a11y tree
+        # with visually relevant updates that change screen state
+        relevant_events: list[AtspiListenableEvent] = [
             "window:activate",
+            # Don't watch window:deactivate since it will trigger after the activate and reset the hints
             "window:create",
             "window:destroy",
             "window:maximize",
@@ -59,13 +60,14 @@ def main():
             "document:page-changed",
             "document:attributes-changed",
             "document:reload",
-        ]:
+        ]
+
+        for event in relevant_events:
             listener: Atspi.EventListener = Atspi.EventListener.new(A11yTree.dump)
             listeners[listener] = event
             Atspi.EventListener.register(listener, event)
 
-        res = Atspi.init()
-        match res:
+        match Atspi.init():
             case 0 as INITIALIZED:  # noqa: F841
                 logging.info("Atspi initialized")
             case 1 as ALREADY_INITIALIZED:  # noqa: F841
