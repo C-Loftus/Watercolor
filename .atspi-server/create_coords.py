@@ -125,14 +125,6 @@ class A11yTree(Singleton):
         return accumulator
 
     @classmethod
-    def reset(cls):
-        # if cls.constructor_handle:
-        #     cls.constructor_handle.interrupt()
-        #     logging.debug("Construct handle removed")
-        #     cls.constructor_handle = None
-        pass
-
-    @classmethod
     def dump(cls, event: AtspiEvent):
         """Dump a serialized version of the a11y tree to the ipc file"""
         start = time.time()
@@ -145,20 +137,23 @@ class A11yTree(Singleton):
         old_app, old_root = Desktop.getRoot()
         old_app = "NULL" if old_app is None else old_app.get_name()
 
-        # tree_action = "interrupting" if cls.constructor_handle else "starting"
+        tree_action = "interrupting" if cls.constructor_handle else "starting"
         logging.debug(
-            f"Tree dump {'starting'} with {(event.type)} from {event.source} inside {old_app} with root: {old_root}"
+            f"Tree dump {tree_action} with {(event.type)} from {event.source} inside {old_app} with root: {old_root}"
         )
 
         new_app_name = event.source.get_application().get_name()
 
         _, new_app_root = Desktop.getRoot(new_app_name)
 
-        A11yTree.reset()
-
         # remove all cached states to make sure we are getting the latest state for each element
         if new_app_root:
             new_app_root.clear_cache()
+
+        # Interrupt any existing tree dump if it is still running
+        if A11yTree.constructor_handle:
+            cls.constructor_handle.interrupt()
+            cls.constructor_handle = None
 
         A11yTree.constructor_handle = InterruptableThread(
             target=A11yTree.get_elements, args=(new_app_name, new_app_root, {})
@@ -177,6 +172,7 @@ class A11yTree(Singleton):
 
         assert elements is not None
 
+        # Handle all cases where the dump completes yet should not be rendered
         if A11yTree.constructor_handle.interrupted():
             logging.debug(f"Tree dump interrupted for {new_app_name}")
             return
@@ -192,6 +188,7 @@ class A11yTree(Singleton):
         # Once the thread is done, get rid of the handle
         A11yTree.constructor_handle = None
 
+        # Cache the elements in the mapper so the api server can get the a11y object
         A11yTree.element_mapper = elements
 
         if os.path.exists(config.TREE_OUTPUT_PATH):
