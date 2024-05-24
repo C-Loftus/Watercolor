@@ -2,7 +2,7 @@
 
 
 # Use a base image with Python installed
-FROM python:3
+FROM ubuntu:latest
 
 # Install the required packages
 RUN apt-get update && apt-get install -y libgirepository1.0-dev gir1.2-atspi-2.0
@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y libgirepository1.0-dev gir1.2-atspi-2.0
 WORKDIR /app
 
 # Copy all Python files from the current directory to the container
-COPY *.py /app/
+COPY .atspi-server/ /app/.atspi-server
+COPY shared/ /app/shared
 
 # Run the main.py script
-CMD ["/usr/bin/python3", "main.py"]
+CMD ["/usr/bin/python3", "./.atspi-server/main.py"]
