@@ -1,4 +1,4 @@
-from typing import ClassVar, TypedDict
+from typing import ClassVar
 
 
 class WatercolorState:

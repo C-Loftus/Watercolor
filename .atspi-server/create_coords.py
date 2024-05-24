@@ -16,6 +16,12 @@ from lib import Singleton, InterruptableThread, AtspiEvent, get_states
 import time
 
 
+# Talon cannot recieve socket messages from the screenreader server
+# However, it needs to know
+def send_talon_progress_signal():
+    pass
+
+
 class Desktop(Singleton):
     @staticmethod
     def getRoot(specific_app: Optional[str] = None):
@@ -45,10 +51,13 @@ class Desktop(Singleton):
                 if specific_app and specific_app == app.get_name():
                     return app, window
 
-        else:
-            logging.debug(
-                f"No root window found among {[desktop.get_child_at_index(i).get_name() for i in range(desktop_child_count)]}"
-            )
+        # Not needed since we care about what event is emitting the signal not which one recieves the singal. It is ok
+        # if it is none
+
+        # else:
+        #     logging.debug(
+        #         f"No root window found among {[desktop.get_child_at_index(i).get_name() for i in range(desktop_child_count)]}"
+        #     )
 
         return (None, None)
 
@@ -135,11 +144,16 @@ class A11yTree(Singleton):
         focused app
         """
         old_app, old_root = Desktop.getRoot()
-        old_app = "NULL" if old_app is None else old_app.get_name()
+
+        def get_name_fallback(accessible):
+            if not accessible:
+                return "NULL"
+            else:
+                return accessible.get_name()
 
         tree_action = "interrupting" if cls.constructor_handle else "starting"
         logging.debug(
-            f"Tree dump {tree_action} with {(event.type)} from {event.source} inside {old_app} with root: {old_root}"
+            f"Tree dump {tree_action} with {(event.type)} from {get_name_fallback(event.source)} inside {get_name_fallback(old_app)} with root: {get_name_fallback(old_root)}"
         )
 
         new_app_name = event.source.get_application().get_name()

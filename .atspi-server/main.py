@@ -54,7 +54,7 @@ def main():
             "object:row-reordered",
             "object:column-reordered",
             "object:state-changed:expanded",
-            "object:state-changed:focused",  # Used for firefox tab switching
+            # "object:state-changed:focused",  # Used for firefox tab switching
             "document:page-changed",
             "document:load-complete",
             "document:page-changed",
@@ -71,11 +71,13 @@ def main():
             case 0 as INITIALIZED:  # noqa: F841
                 logging.info("Atspi initialized")
             case 1 as ALREADY_INITIALIZED:  # noqa: F841
-                logging.error(
+                logging.debug(
                     "Atspi does need to be initialized since it was already done"
                 )
             case _ as e:
-                logging.error(f"Error initializing Atspi with error code: {e}")
+                msg = f"Error initializing Atspi with error code: {e}"
+                logging.error(msg)
+                raise RuntimeError(msg)
 
         interruptable_main = threading.Thread(target=Atspi.Event.main)
         interruptable_main.start()

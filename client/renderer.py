@@ -1,11 +1,11 @@
 from .client_types import WatercolorState
-from talon import resource, Context
+from talon import resource, Context, settings
 import pathlib, os, json
 from talon.canvas import Canvas
 from talon.types import Rect
 from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
-from talon import skia
+from talon import skia, registry, app
 from talon.skia.imagefilter import ImageFilter
 import itertools
 from typing import ClassVar
@@ -22,26 +22,24 @@ def generate_combinations(l):
 
 alphabet = generate_combinations(list("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
 
-FOREGROUND_TEXT_COLOR = "1f2335"
-BACKGROUND_COLOR = "7aa2f7"
-HAT_RADIUS = 14
-PERCENT_TRANSPARENCY = 0.5
-
 ctx = Context()
 
 
 def get_color() -> str:
-    color_alpha = f"{(int((1- PERCENT_TRANSPARENCY) * 255)):02x}"
-    return f"{BACKGROUND_COLOR}{color_alpha}"
+    transparency = float(settings.get("user.watercolor_percent_transparency"))
+    color_alpha = f"{(int((1- transparency) * 255)):02x}"
+    background_color = settings.get("user.watercolor_background_color")
+
+    return f"{background_color}{color_alpha}"
 
 
 def _on_draw(c: SkiaCanvas):
     # c.paint.imagefilter = ImageFilter.drop_shadow(1, 1, 1, 1, color_gradient)
-
     for label, element in ScreenLabels.element_mapping.items():
         # c.paint.shader = skia.Shader.radial_gradient(
         #      (x, y), HAT_RADIUS, [get_color(), 255]
         #      )
+        HAT_RADIUS = settings.get("user.watercolor_hat_radius")
         c.paint.color = get_color()
         c.paint.style = c.paint.Style.FILL
         c.draw_rect(
@@ -52,7 +50,7 @@ def _on_draw(c: SkiaCanvas):
                 HAT_RADIUS * 1.5,
             )
         )
-        c.paint.color = FOREGROUND_TEXT_COLOR
+        c.paint.color = settings.get("user.watercolor_foreground_color")
         c.paint.style = c.paint.Style.FILL
         c.paint.stroke_width = 3
         c.draw_text(label, element.x - (0.5 * HAT_RADIUS), element.y)
@@ -63,11 +61,15 @@ class ScreenLabels:
     canvas: ClassVar[Canvas] = None
 
     @classmethod
-    def clear(cls):
+    def close_canvas(cls):
         if cls.canvas:
             cls.canvas.close()
             cls.canvas.unregister("draw", _on_draw)
             cls.canvas = None
+
+    @classmethod
+    def clear(cls):
+        cls.close_canvas()
 
         cls.element_mapping = {}
 
@@ -92,6 +94,13 @@ class ScreenLabels:
     @classmethod
     def get_element_from_label(cls, label: str) -> A11yElement:
         return cls.element_mapping[label]
+
+    @classmethod
+    def refresh(cls):
+        cls.close_canvas()
+        if not WatercolorState.enabled:
+            return
+        cls.render()
 
 
 class A11yTree:
@@ -119,9 +128,8 @@ class A11yTree:
 
 @resource.watch(A11yTree.ipc_path)
 def renderElementStyling(_):
-    # if not os.path.exists(A11yTree.ipc_path):
-    # raise Exception(f"File {A11yTree.ipc_path=} was updated but now does not exist")
-    # start the timer
+    if not os.path.exists(A11yTree.ipc_path):
+        return
 
     start = time.time()
 
@@ -137,3 +145,10 @@ def renderElementStyling(_):
     ScreenLabels.render()
 
     print(f"Rendered in {round(time.time() - start, 3)} seconds")
+
+
+def on_ready():
+    registry.register("update_settings", lambda _: ScreenLabels.refresh())
+
+
+app.register("ready", on_ready)

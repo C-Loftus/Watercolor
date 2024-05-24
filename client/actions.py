@@ -1,3 +1,4 @@
+from typing import Literal
 from talon import Module, Context, actions
 import dataclasses, json
 from .renderer import WatercolorState, ScreenLabels, renderElementStyling, A11yTree
@@ -8,6 +9,11 @@ ctx = Context()
 ctx.matches = r"""
 os: linux
 """
+
+mod.setting("watercolor_foreground_color", type=str, default="1f2335")
+mod.setting("watercolor_background_color", type=str, default="7aa2f7")
+mod.setting("watercolor_hat_radius", type=int, default=14)
+mod.setting("watercolor_percent_transparency", type=float, default=0.5)
 
 
 @mod.capture(rule="<user.letter> <user.letter>")
@@ -21,8 +27,7 @@ class Actions:
     def watercolor_refresh():
         """Refresh the screen state"""
         WatercolorState.enabled = True
-        ScreenLabels.clear()
-        ScreenLabels.render()
+        ScreenLabels.refresh()
 
     def watercolor_toggle_hats():
         """Toggle showing hats over every a11y element each time the screen state changes"""
@@ -32,7 +37,7 @@ class Actions:
             WatercolorState.enabled = False
             print("Watercolor disabled")
         else:
-            renderElementStyling(None)
+            renderElementStyling(_ := None)
             WatercolorState.enabled = True
             print("Watercolor enabled")
             ScreenLabels.render()
@@ -42,7 +47,7 @@ class Actions:
 
         WatercolorState.debug = not WatercolorState.debug
 
-    def watercolor_action(action_name: WatercolorCommand, target_label: str):
+    def watercolor_action(action_name: str, target_label: str):
         """Apply the specified element to the specified target"""
         try:
             payload = {

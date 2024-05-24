@@ -2,8 +2,8 @@ import json
 import enum
 import socket
 import threading
-from typing import Optional, TypedDict, assert_never, get_args
-from ..shared.shared_types import WatercolorCommand, ServerStatusResult, ServerResponse
+from typing import Literal, Optional, TypedDict, Union, assert_never, get_args
+from ..shared.shared_types import ServerStatusResult, WatercolorCommand, ServerResponse
 from ..shared import config
 
 from talon import Module
@@ -46,7 +46,7 @@ def handle_ipc_result(
             raise RuntimeError(
                 f"Clientside {communication_error=} communicating with screenreader extension"
             )
-        case (ClientResponse.SUCCESS):
+        case ClientResponse.SUCCESS:
             # empty case for pyright exhaustiveness
             pass
         case _:
