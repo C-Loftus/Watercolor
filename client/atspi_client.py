@@ -74,7 +74,7 @@ def handle_ipc_result(
                 "The targeted element is inaccessible and does not support running a11y actions on it"
             )
 
-        case ServerStatusResult.NO_ACTION_SUPPORTED_ERROR:
+        case ServerStatusResult.NO_ACTION_IMPLEMENTED_ERROR:
             raise ValueError(f"Command '{cmd}' not supported by targeted a11y element")
 
         case None:

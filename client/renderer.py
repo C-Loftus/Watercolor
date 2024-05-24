@@ -16,8 +16,8 @@ import time
 import itertools
 
 
-def generate_combinations(l):
-    return ["".join(i) for i in list(itertools.product(*([l] * 2)))]
+def generate_combinations(lst: list[str]):
+    return ["".join(i) for i in list(itertools.product(*([lst] * 2)))]
 
 
 alphabet = generate_combinations(list("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
