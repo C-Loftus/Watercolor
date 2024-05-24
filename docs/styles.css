@@ -1,17 +1,19 @@
 /* Default style for body */
+html,
 body {
-  font: 18px "Work Sans", sans-serif;
+  height: 100%; /* Ensure the body and html take up the full height */
   margin: 0;
   padding: 0;
-  /* color: #2b2b2bef; */
+}
+
+body {
+  font: 18px "Work Sans", sans-serif;
   background: linear-gradient(#809bce, transparent),
     linear-gradient(to top left, #ffafbd, transparent),
     linear-gradient(to top right, #c1dec8, transparent);
-
   background-blend-mode: screen;
   background-repeat: no-repeat;
   background-attachment: fixed;
-  min-height: 150vh;
   display: flex;
   flex-direction: column;
 }
@@ -36,6 +38,10 @@ body {
   padding: 20px;
   flex-grow: 1;
 }
+i.note {
+  display: block;
+  line-height: 0.2;
+}
 
 .section {
   border-radius: 10px;
@@ -46,14 +52,9 @@ body {
 
 .section h2 {
   color: #476098;
-
   font-size: 20px;
   margin-top: 0;
-}
-
-.section p {
-  color: #333;
-  line-height: 1.6;
+  text-align: center;
 }
 
 .footer {
@@ -78,16 +79,14 @@ body {
 }
 
 span {
-  display: inline-block;
   background-color: rgba(0, 0, 0, 0.1); /* Adjust opacity as needed */
   border-radius: 6px;
-  padding: 7px;
+  padding: 6px;
   font: 18px "Ubuntu Mono", sans-serif;
+  margin-bottom: 10px;
 }
 
 span.installation {
-  width: 100%;
-  margin-bottom: 10px;
   display: block;
 }
 
@@ -122,8 +121,86 @@ h1 {
     rgba(71, 96, 152, 1),
     rgba(71, 96, 152, 0.5)
   );
-
   color: transparent;
   background-clip: text;
   -webkit-background-clip: text;
+}
+
+i,
+p,
+summary {
+  text-align: center;
+  padding: 1px;
+}
+
+p,
+.section > i {
+  color: #333;
+}
+
+ul {
+  margin-left: 20%;
+  transform: translateX(-15%);
+  line-height: 2em;
+  list-style-type: none;
+}
+
+.commands {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.commands td {
+  padding: 8px;
+  text-align: left;
+}
+
+.commands td:first-child {
+  border-right: none; /* Remove right border for the first column */
+}
+
+.installation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  border-radius: 5px;
+  transition: background 0.3s ease;
+}
+
+.installation:hover {
+  background: #c2c9d8;
+}
+
+.copy {
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  margin-left: 10px;
+  transition: transform 0.3s ease;
+}
+
+.copy:hover {
+  transform: scale(1.2);
+}
+
+.tooltip {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-size: 14px;
+  z-index: 9999;
+}
+
+.commands {
+  border-collapse: collapse;
+  width: 70%; /* Adjust the width as needed */
+  margin: 0 auto; /* Center the table horizontally */
+}
+
+.commands td {
+  padding: 8px;
+  text-align: center; /* Center the content within each cell */
 }

@@ -5,71 +5,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Watercolor Docs</title>
+    <!-- import styles.css -->
+    <script src="./main.js"></script>
+    <link rel="stylesheet" href="./styles.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Poetsen+One&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap');
     </style>
-    <link rel="stylesheet" href="styles.css">
-
-    <script src="main.js" defer></script>
 </head>
 
 <body>
 
     <h1 class="callout">
-
         Watercolor
     </h1>
-
 
     <div class="content">
         <div class="section">
             <h2>Quickstart</h2>
             <p>Watercolor adds labels for each a11y element on the screen for mouse-free interaction.</p>
-            <details open>
-                <summary>Installation</summary>
-                <ul>
-                    <li>
-                        <span class="installation"> git clone
-                            https://github.com/c-Loftus/watercolor ~/.talon/user <img src="./copy.svg" class="copy"
-                                alt="copy icon"> </span>
-                    </li>
-
-                    <li>
-
-                        <span class="installation"> cd ~/.talon/user/Watercolor <img src="./copy.svg" class="copy"
-                                alt="copy icon">
-                        </span>
-                    </li>
-                    <li>
-
-                        <span class="installation"> make run <img src="./copy.svg" class="copy" alt="copy icon"> </span>
-                    </li>
-
-
-                </ul>
-            </details>
-
+            <ul>
+                <li>
+                    <span class="installation"> git clone https://github.com/c-Loftus/watercolor ~/.talon/user
+                        <img src="./copy.svg" class="copy" alt="copy icon">
+                    </span>
+                </li>
+                <li>
+                    <span class="installation"> sudo apt-get install -y libgirepository1.0-dev gir1.2-atspi-2.0
+                        <img src="./copy.svg" class="copy" alt="copy icon">
+                    </span>
+                </li>
+                <li>
+                    <span class="installation"> cd ~/.talon/user/Watercolor
+                        <img src="./copy.svg" class="copy" alt="copy icon">
+                    </span>
+                </li>
+                <li>
+                    <span class="installation"> make run
+                        <img src="./copy.svg" class="copy" alt="copy icon">
+                    </span>
+                </li>
+            </ul>
         </div>
 
         <div class="section">
             <h2>Commands</h2>
-            <i> You must have the Watercolor server running to use these commands. All letter names use the Talon
-                phonetic alphabet</i>
+            <i class="note"> You must have the Watercolor server running to use these commands. </i>
+            <br>
+            <i class="note"> All letter names use the Talon phonetic alphabet</i>
             <br>
             <br>
-            "<span> color toggle </span>" turns watercolor on and off.</span>
-            <br>
-            "<span> color {two_letter_names}</span>"
-            Example: "<span> color air bat </span>" clicks the label "AB"
-            <br>
-            "<span> inspect {two_letter_names}</span>"
-            Example: "<span> color air bat </span>" Print info on the element with label "AB"
+            <table class="commands">
+                <tr>
+                    <td><span>color toggle</span></td>
+                    <td>Turns watercolor on and off.</td>
+                </tr>
+                <tr>
+                    <td><span>color {<i>two letter names</i>}</span></td>
+                    <td><span>color air bat</span> clicks the label "AB"</td>
+                </tr>
+                <tr>
+                    <td><span>inspect {<i>two letter names</i>}</span></td>
+                    <td><span>inspect air bat</span> print info on the label "AB"</td>
+                </tr>
+            </table>
 
         </div>
-        <div class="section">
-            <h2>FAQ</h2>
-            <p>Have questions? Check out our FAQ section for answers to commonly asked questions.</p>
-        </div>
+
+    </div>
+
+
 
 
 </body>
