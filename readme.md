@@ -15,14 +15,18 @@ _Note: This repository is a work in progress_
 5. Say `color <watercolor_hint>` with the Talon phonetic alphabet to click an element
 
 > [!NOTE]
-> You must have the atspi-server running via `make run` in order to use Watercolor commands
+> You must have the atspi-server running via `make run` in order to say Watercolor commands
 
 ## Caveats
 
-- Many application don't implement atspi properly, some not at all
-  - Some don't implement clicking on a11y elements, others output the wrong events, or incorrectly cache elements
-- The Python bindings to libatspi are sometimes slow. Depending on interest, I may port the backend to the [rust atspi implementation](https://github.com/odilia-app/atspi)
+- Many applications don't implement atspi properly, some not at all
+  - Issues can include wrong state labels on elements, failure to implement clicking on elements, outputting the wrong events on document changes, or incorrectly caching elements
+- The Python bindings to libatspi are not designed to handle high throughput connections and can be slow. Depending on interest, I may port the backend to the [rust atspi implementation](https://github.com/odilia-app/atspi)
 
-## Support
+## Support and Debugging
 
-I offer accessibility software consulting services. Please [reach out to me](https://colton.place/contact/) if you have a question about Talon, screen readers, front-end design, atspi, or any other accessibility software.
+- Say `color inspect <user.watercolor_hint>` to inspect an a11y element and its properties
+- Use [accerciser](https://gitlab.gnome.org/GNOME/accerciser) for checking atspi compliance
+- Check `Watercolor/atspi_log.txt` and report any issues once confirmed
+
+For any personalized support or inquiries, I offer accessibility software consulting services. Please [reach out to me](https://colton.place/contact/) if you have a question about Talon, screen readers, front-end design, atspi, or any other accessibility software.

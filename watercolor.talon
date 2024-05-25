@@ -13,6 +13,5 @@ color <user.watercolor_hint>:
     user.watercolor_action("click", user.watercolor_hint)
 
 # Dump the a11y element to the log for debugging purposes
-inspect <user.watercolor_hint>:
+color inspect <user.watercolor_hint>:
     user.watercolor_action("inspect", user.watercolor_hint)
-

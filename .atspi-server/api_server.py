@@ -148,16 +148,20 @@ class IPC_Server(Singleton):
                 pass
             except Exception as e:
                 print(f"TALON SERVER CRASH: {e}")
+                logging.fatal(f"TALON SERVER CRASH: {e}")
                 cls.stop()
                 with open(
                     "talon_server_error.log",
                     "a",
                 ) as f:
-                    f.write(
-                        f"\nERROR AT {datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')}: {e}"
-                    )
-                    f.write(f"\n{traceback.format_exc()}")
-                    f.write(f"\nINTERNAL STATE: {cls.__dict__}\n")
+                    msgs = [
+                        f"\nERROR AT {datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')}: {e}",
+                        f"\n{traceback.format_exc()}",
+                        f"\nINTERNAL STATE: {cls.__dict__}\n",
+                    ]
+                    for msg in msgs:
+                        f.write(msg)
+                        logging.fatal(msg)
                 break
             finally:
                 if cls.client_socket and cls.client_socket.fileno() != -1:
