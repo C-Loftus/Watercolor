@@ -2,6 +2,8 @@
 
 <p align="center">Click linux desktop gui elements by dictating a label </p>
 
+![An example with labels over all elements on the screen](./docs/watercolor_example.png)
+
 ## Setup
 
 _Note: This repository is a work in progress_
