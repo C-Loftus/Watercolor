@@ -1,5 +1,5 @@
 from typing import Literal
-from talon import Module, Context, actions
+from talon import Module, Context, actions, app
 import dataclasses, json
 from .renderer import WatercolorState, ScreenLabels, renderElementStyling, A11yTree
 from ..shared.shared_types import WatercolorCommand
@@ -36,10 +36,12 @@ class Actions:
             ScreenLabels.clear()
             WatercolorState.enabled = False
             print("Watercolor disabled")
+            app.notify("Watercolor disabled")
         else:
             renderElementStyling(_ := None)
             WatercolorState.enabled = True
             print("Watercolor enabled")
+            app.notify("Watercolor enabled")
             ScreenLabels.render()
 
     def watercolor_toggle_debug():
