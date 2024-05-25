@@ -57,7 +57,7 @@ def handle_command(
                 print(
                     f"No actions found within {[actions.get_action_name(i) for i in range(num_actions)]}"
                 )
-                return command, ServerStatusResult.NO_ACTION_SUPPORTED_ERROR
+                return command, ServerStatusResult.NO_ACTION_IMPLEMENTED_ERROR
 
             for i in range(num_actions):
                 description = actions.get_action_description(i)
@@ -71,8 +71,6 @@ def handle_command(
 
         case "inspect":
             inspect_element(atspi_element)
-        case _:
-            raise ValueError(f"Invalid command: {command}")
 
     return command, ServerStatusResult.SUCCESS
 

@@ -6,7 +6,7 @@ from typing import Literal, Optional, TypedDict, Union, assert_never, get_args
 from ..shared.shared_types import ServerStatusResult, WatercolorCommand, ServerResponse
 from ..shared import config
 
-from talon import Module
+from talon import Module, app
 
 mod = Module()
 lock = threading.Lock()
@@ -43,9 +43,9 @@ def handle_ipc_result(
                 _,
             ) as communication_error
         ):
-            raise RuntimeError(
-                f"Clientside {communication_error=} communicating with screenreader extension"
-            )
+            msg = f"Could not connect to the atspi server due to {communication_error}"
+            app.notify(msg)
+            raise RuntimeError(msg)
         case ClientResponse.SUCCESS:
             # empty case for pyright exhaustiveness
             pass
@@ -58,24 +58,32 @@ def handle_ipc_result(
             # empty case is here for exhaustiveness
             pass
         case ServerStatusResult.INVALID_COMMAND_ERROR:
-            raise ValueError(f"Invalid command {cmd} sent to atspi server")
+            msg = f"Invalid command {cmd} sent to atspi server"
+            app.notify(msg)
+            raise ValueError(msg)
         case ServerStatusResult.JSON_ENCODE_ERROR:
-            raise ValueError("Invalid JSON payload sent from client to atspi server")
+            msg = "Invalid JSON payload sent from client to atspi server"
+            app.notify(msg)
+            raise ValueError(msg)
         case (
             (
                 ServerStatusResult.INTERNAL_SERVER_ERROR
                 | ServerStatusResult.RUNTIME_ERROR
             ) as error
         ):
-            raise RuntimeError(f"Server {error.value} processing command '{cmd}'")
+            msg = f"Server {error.value} processing command '{cmd}'"
+            app.notify(msg)
+            raise RuntimeError(msg)
 
         case ServerStatusResult.NO_ACTION_INTERFACE_ERROR:
-            raise ValueError(
-                "The targeted element is inaccessible and does not support running a11y actions on it"
-            )
+            msg = "The targeted element is inaccessible and does not support running actions on it"
+            app.notify(msg)
+            raise RuntimeError(msg)
 
         case ServerStatusResult.NO_ACTION_IMPLEMENTED_ERROR:
-            raise ValueError(f"Command '{cmd}' not supported by targeted a11y element")
+            msg = f"'{cmd}' not implemented by the targeted element"
+            app.notify(msg)
+            raise RuntimeError(msg)
 
         case None:
             raise RuntimeError(f"Client never connected to server for '{cmd}'")

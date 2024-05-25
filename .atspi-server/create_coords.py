@@ -5,7 +5,7 @@ from gi.repository import Atspi
 import json
 import os
 import logging
-from typing import ClassVar, Optional
+from typing import ClassVar, Literal, Optional
 import sys  # isort:skip
 
 sys.path.append(".")  # isort:skip
@@ -20,6 +20,14 @@ import time
 # However, it needs to know
 def send_talon_progress_signal():
     pass
+
+
+def get_name_fallback(accessible) -> str | Literal["NULL"]:
+    if not accessible:
+        return "NULL"
+    else:
+        name = accessible.get_name()
+        return name if name else "NULL"
 
 
 class Desktop(Singleton):
@@ -75,7 +83,7 @@ class A11yTree(Singleton):
         Recursive method for creating the a11y tree within the separate creator thread.
         In a thread so it doesn't block when the user switches the focused app
         """
-        if not root or cls.constructor_handle.interrupted():
+        if not root or A11yTree.constructor_handle.interrupted():
             return accumulator
 
         try:
@@ -125,10 +133,9 @@ class A11yTree(Singleton):
                     accumulator[element] = accessible
 
                 A11yTree.get_elements(parent_app, accessible, accumulator)
-
         except gi.repository.GLib.GError as ge:
             logging.error(
-                f"Error while creating a11y tree for {parent_app} with root {root}: {ge}"
+                f"Error while creating a11y tree for {parent_app} with root {get_name_fallback(root)}: {ge}"
             )
 
         return accumulator
@@ -145,15 +152,9 @@ class A11yTree(Singleton):
         """
         old_app, old_root = Desktop.getRoot()
 
-        def get_name_fallback(accessible):
-            if not accessible:
-                return "NULL"
-            else:
-                return accessible.get_name()
-
-        tree_action = "interrupting" if cls.constructor_handle else "starting"
+        tree_action = "interrupting" if A11yTree.constructor_handle else "starting"
         logging.debug(
-            f"Tree dump {tree_action} with {(event.type)} from {get_name_fallback(event.source)} inside {get_name_fallback(old_app)} with root: {get_name_fallback(old_root)}"
+            f"Dump {tree_action} with {(event.type)} from {get_name_fallback(event.source)} inside {get_name_fallback(old_app)} with root: {get_name_fallback(old_root)}"
         )
 
         new_app_name = event.source.get_application().get_name()
@@ -163,55 +164,81 @@ class A11yTree(Singleton):
         # remove all cached states to make sure we are getting the latest state for each element
         if new_app_root:
             new_app_root.clear_cache()
+        if old_root:
+            old_root.clear_cache()
 
         # Interrupt any existing tree dump if it is still running
         if A11yTree.constructor_handle:
-            cls.constructor_handle.interrupt()
-            cls.constructor_handle = None
+            A11yTree.constructor_handle.interrupt()
+            # Make the old thread finish before we spawn a new one
+            A11yTree.constructor_handle.join()
+            A11yTree.constructor_handle = None
 
-        A11yTree.constructor_handle = InterruptableThread(
-            target=A11yTree.get_elements, args=(new_app_name, new_app_root, {})
-        )
+        def interruptable_portion():
+            """
+            All operations in this function can be interrupted by the user to stop the tree dump
+            This is done so if the user switches context many times, it doesn't cause the atspi
+            server to block on many tree updates and slow down the UI with many updates all at once
+            """
+            elements = A11yTree.get_elements(new_app_name, new_app_root, accumulator={})
+
+            assert elements is not None
+
+            # Handle all cases where the dump completes yet should not be rendered
+            if A11yTree.constructor_handle.interrupted():
+                logging.debug(f"Tree dump interrupted for {new_app_name}")
+                return
+            elif event.source.get_role() == Atspi.Role.FRAME and len(elements) == 0:
+                logging.debug(
+                    f"Skipped tree dump for internal frame inside {new_app_name} with {len(elements)} elements"
+                )
+                return
+            elif len(elements) == 0 and event.type == "object:state-changed:focused":
+                logging.debug(
+                    f"Skipped tree dump for pseudo update inside {new_app_name}."
+                )
+                return
+
+            # Once the thread is done, get rid of the handle
+            A11yTree.constructor_handle = None
+
+            # Cache the elements in the mapper so the api server can get the a11y object
+            A11yTree.element_mapper = elements
+
+            if os.path.exists(config.TREE_OUTPUT_PATH):
+                os.remove(config.TREE_OUTPUT_PATH)
+
+            with open(config.TREE_OUTPUT_PATH, "w") as outfile:
+                entire_tree_serialized = [
+                    element.to_dict() for element in elements.keys()
+                ]
+                json.dump(entire_tree_serialized, outfile)
+
+            delta = round(time.time() - start, 2)
+
+            logging.debug(
+                f"Dumped tree with {len(elements)} elements in {delta} seconds"
+            )
 
         """
-        We need to start then join the thread to have an interruptable blocking operation.
-        If the user focused another window, we want to stop the construction and the block on
-        the creation of the new tree for the new window
+        We use a thread so if the user focused another window, we can immediately
+        stop the tree dump and start a new one
         """
+        A11yTree.constructor_handle = InterruptableThread(target=interruptable_portion)
         A11yTree.constructor_handle.start()
 
-        elements: dict[A11yElement, Atspi.Accessible] = (
-            A11yTree.constructor_handle.join()
-        )
+        # TODO remove this
+        A11yTree.constructor_handle.join()
+        """
+        TODO:
 
-        assert elements is not None
+        The underlying atspi c library crashes if queried too quickly with many shifts between apps
+        with fast interrupts. join() is here to prevent interrupts and that should not crash. 
+        TODO look into why libatspi crashes 
+        
+        All the Python logic is correct, not much that can be done without modifying the C library
 
-        # Handle all cases where the dump completes yet should not be rendered
-        if A11yTree.constructor_handle.interrupted():
-            logging.debug(f"Tree dump interrupted for {new_app_name}")
-            return
-        elif event.source.get_role() == Atspi.Role.FRAME and len(elements) == 0:
-            logging.debug(
-                f"Skipped tree dump for internal frame inside {new_app_name} with {len(elements)} elements"
-            )
-            return
-        elif len(elements) == 0 and event.type == "object:state-changed:focused":
-            logging.debug(f"Skipped tree dump for pseudo update inside {new_app_name}.")
-            return
-
-        # Once the thread is done, get rid of the handle
-        A11yTree.constructor_handle = None
-
-        # Cache the elements in the mapper so the api server can get the a11y object
-        A11yTree.element_mapper = elements
-
-        if os.path.exists(config.TREE_OUTPUT_PATH):
-            os.remove(config.TREE_OUTPUT_PATH)
-
-        with open(config.TREE_OUTPUT_PATH, "w") as outfile:
-            entire_tree_serialized = [element.to_dict() for element in elements.keys()]
-            json.dump(entire_tree_serialized, outfile)
-
-        delta = round(time.time() - start, 2)
-
-        logging.debug(f"Dumped tree with {len(elements)} elements in {delta} seconds")
+        Error:
+        gi.repository.GLib.GError: atspi_error: The process appears to be hung. (1)
+        make: *** [makefile:7:  Segmentation fault (core dumped)
+        """

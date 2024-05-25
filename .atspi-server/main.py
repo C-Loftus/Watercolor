@@ -72,7 +72,7 @@ def main():
                 logging.info("Atspi initialized")
             case 1 as ALREADY_INITIALIZED:  # noqa: F841
                 logging.debug(
-                    "Atspi does need to be initialized since it was already done"
+                    "Atspi doesn't need to be initialized since it was already done"
                 )
             case _ as e:
                 msg = f"Error initializing Atspi with error code: {e}"
@@ -84,6 +84,7 @@ def main():
         interruptable_main.join()
 
     except (RuntimeError, KeyboardInterrupt) as e:
+        print(e)
         for listener in listeners:
             event = listeners[listener]
             Atspi.EventListener.deregister(listener, event)

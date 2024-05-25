@@ -10,8 +10,8 @@ ctx.matches = r"""
 os: linux
 """
 
-mod.setting("watercolor_foreground_color", type=str, default="1f2335")
-mod.setting("watercolor_background_color", type=str, default="7aa2f7")
+mod.setting("watercolor_foreground_color", type=str, default="F6DCAC")
+mod.setting("watercolor_background_color", type=str, default="01204E")
 mod.setting("watercolor_hat_radius", type=int, default=14)
 mod.setting("watercolor_percent_transparency", type=float, default=0.5)
 

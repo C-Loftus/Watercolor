@@ -12,7 +12,6 @@ from typing import ClassVar
 from ..shared.shared_types import A11yElement
 from ..shared import config
 import time
-
 import itertools
 
 
@@ -112,7 +111,13 @@ class A11yTree:
     @classmethod
     def getElements(cls) -> list[A11yElement]:
         with open(cls.ipc_path) as f:
-            raw = json.load(f)
+            try:
+                raw = json.load(f)
+                if raw == "dummy":
+                    return []
+            except json.decoder.JSONDecodeError:
+                print(f"{cls.ipc_path} is not valid JSON with data = {raw}")
+                return []
 
             return [
                 A11yElement(
@@ -124,6 +129,13 @@ class A11yTree:
                 )
                 for element in raw
             ]
+
+
+# We need the ipc file to exist at python-load-time before the watcher is set up
+# so we create it here with dummy data that is still parsible json
+if not os.path.exists(A11yTree.ipc_path):
+    with open(A11yTree.ipc_path, "w") as f:
+        json.dump("dummy", f)
 
 
 @resource.watch(A11yTree.ipc_path)
