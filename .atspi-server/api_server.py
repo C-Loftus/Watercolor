@@ -29,17 +29,31 @@ import logging
 
 def handle_command(
     payload: ClientPayload,
-) -> tuple[WatercolorCommand, ServerStatusResult]:
+) -> tuple[WatercolorCommand, ServerStatusResult, str]:
     logging.debug(f"Recieved {payload}")
     print(f"Recieved {payload}")
     command = payload["command"]
+    stdout: str = ""
 
     element = A11yElement.from_dict(payload["target"])
+
+    if not element:
+        logging.error(
+            f"Tried to click an element: {element}, but it doesn't exist in the tree"
+        )
+        return command, ServerStatusResult.INTERNAL_SERVER_ERROR, stdout
+
+    if not A11yTree.element_mapper:
+        logging.error(
+            "Tried to get an a11y element but the mapper is not yet initialized"
+        )
+        return command, ServerStatusResult.INTERNAL_SERVER_ERROR, stdout
+
     atspi_element: Atspi.Accessible = A11yTree.element_mapper.get(element, None)
 
     if not atspi_element:
         print(f"Tried to click an element: {element}, but it doesn't exist in the tree")
-        return command, ServerStatusResult.INTERNAL_SERVER_ERROR
+        return command, ServerStatusResult.INTERNAL_SERVER_ERROR, stdout
 
     match command:
         case "click":
@@ -49,7 +63,7 @@ def handle_command(
                 print(
                     f"No action interface found for element {atspi_element.get_name()}, with role: {atspi_element.get_role_name()}"
                 )
-                return command, ServerStatusResult.NO_ACTION_INTERFACE_ERROR
+                return command, ServerStatusResult.NO_ACTION_INTERFACE_ERROR, stdout
 
             num_actions = actions.get_n_actions()
 
@@ -57,7 +71,7 @@ def handle_command(
                 print(
                     f"No actions found within {[actions.get_action_name(i) for i in range(num_actions)]}"
                 )
-                return command, ServerStatusResult.NO_ACTION_IMPLEMENTED_ERROR
+                return command, ServerStatusResult.NO_ACTION_IMPLEMENTED_ERROR, stdout
 
             for i in range(num_actions):
                 description = actions.get_action_description(i)
@@ -70,9 +84,9 @@ def handle_command(
             actions.do_action(PRIMARY_ACTION := 0)  # noqa: F841
 
         case "inspect":
-            inspect_element(atspi_element)
+            stdout = inspect_element(atspi_element)
 
-    return command, ServerStatusResult.SUCCESS
+    return command, ServerStatusResult.SUCCESS, stdout
 
 
 class IPC_Server(Singleton):
@@ -87,21 +101,21 @@ class IPC_Server(Singleton):
         response_for_client: ServerResponse = {
             "command": None,
             "result": ServerStatusResult.RUNTIME_ERROR.value,
+            "stdout": "",
         }
 
         try:
             client_request: ClientPayload = json.loads(data.decode().strip())
-            command, result = handle_command(client_request)
+            command, result, stdout = handle_command(client_request)
             response_for_client: ServerResponse = {
                 "command": command,
                 "result": result.value,
+                "stdout": stdout,
             }
 
         except json.JSONDecodeError as e:
             print(f"RECEIVED INVALID JSON FROM CLIENT: {e}")
-            response_for_client: ServerResponse = {
-                "result": ServerStatusResult.JSON_ENCODE_ERROR.value
-            }
+            response_for_client["result"] = ServerStatusResult.JSON_ENCODE_ERROR.value
 
         finally:
             if cls.client_socket.fileno() != -1:

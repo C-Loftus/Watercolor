@@ -29,7 +29,10 @@ WatercolorCommand = Literal["click", "inspect"]
 
 class ServerResponse(TypedDict):
     command: WatercolorCommand
+    # enum for pattern matching
     result: ServerStatusResult
+    # raw raw output to print for more detail
+    stdout: str
 
 
 class ResponseBundle(TypedDict):

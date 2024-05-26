@@ -129,6 +129,8 @@ def init_logger():
 
 
 def inspect_element(accessible: Atspi.Accessible):
+    stdout = ""
+
     point = accessible.get_position(Atspi.CoordType.SCREEN)
     x = point.x
     y = point.y
@@ -137,7 +139,7 @@ def inspect_element(accessible: Atspi.Accessible):
     pid = accessible.get_process_id()
     role = accessible.get_role_name()
     name = accessible.get_name()
-    print(f"{x=},{y=},{states=},{parent_application=},{pid=},{role=},{name=}")
+    stdout = f"{x=},{y=},{states=},{parent_application=},{pid=},{role=},{name=}"
     actions = accessible.get_action_iface()
 
     if not actions:
@@ -149,7 +151,11 @@ def inspect_element(accessible: Atspi.Accessible):
     for i in range(num_actions):
         description = actions.get_action_description(i)
         name = actions.get_action_name(i)
-        print(f"Action {i}: {description=}, {name=}")
+        stdout += f", Action {i}: {description=}, {name=}"
+
+    # Print this serverside for logging reasons
+    print(stdout)
+    return stdout
 
 
 AtspiListenableEvent = Literal[

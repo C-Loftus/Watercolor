@@ -66,5 +66,4 @@ class Actions:
                 payload["command"] = valid_action
             case _:
                 raise Exception(f"Invalid action: {action_name}")
-        print(payload)
         actions.user.send_watercolor_command(payload)

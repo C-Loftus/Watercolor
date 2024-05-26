@@ -25,6 +25,11 @@ class ResponseBundle(TypedDict):
     server: Optional[ServerResponse]
 
 
+def _notify_and_raise(msg: str):
+    app.notify(msg)
+    raise RuntimeError(msg)
+
+
 def handle_ipc_result(
     client_response: ClientResponse,
     server_response: ServerResponse,
@@ -43,9 +48,9 @@ def handle_ipc_result(
                 _,
             ) as communication_error
         ):
-            msg = f"Could not connect to the atspi server due to {communication_error}"
-            app.notify(msg)
-            raise RuntimeError(msg)
+            _notify_and_raise(
+                f"Could not connect to the atspi server due to {communication_error}"
+            )
         case ClientResponse.SUCCESS:
             # empty case for pyright exhaustiveness
             pass
@@ -58,35 +63,29 @@ def handle_ipc_result(
             # empty case is here for exhaustiveness
             pass
         case ServerStatusResult.INVALID_COMMAND_ERROR:
-            msg = f"Invalid command {cmd} sent to atspi server"
-            app.notify(msg)
-            raise ValueError(msg)
+            _notify_and_raise(f"Invalid command {cmd} sent to atspi server")
         case ServerStatusResult.JSON_ENCODE_ERROR:
-            msg = "Invalid JSON payload sent from client to atspi server"
-            app.notify(msg)
-            raise ValueError(msg)
+            _notify_and_raise("Invalid JSON payload sent from client to atspi server")
         case (
             (
                 ServerStatusResult.INTERNAL_SERVER_ERROR
                 | ServerStatusResult.RUNTIME_ERROR
             ) as error
         ):
-            msg = f"Server {error.value} processing command '{cmd}'"
-            app.notify(msg)
-            raise RuntimeError(msg)
+            _notify_and_raise(f"Server {error.value} processing command '{cmd}'")
 
         case ServerStatusResult.NO_ACTION_INTERFACE_ERROR:
-            msg = "The targeted element is inaccessible and does not support running actions on it"
-            app.notify(msg)
-            raise RuntimeError(msg)
+            _notify_and_raise(
+                "The targeted element is inaccessible and does not support running actions on it"
+            )
 
         case ServerStatusResult.NO_ACTION_IMPLEMENTED_ERROR:
-            msg = f"'{cmd}' not implemented by the targeted element"
-            app.notify(msg)
-            raise RuntimeError(msg)
+            _notify_and_raise(f"'{cmd}' not implemented by the targeted element")
 
         case None:
-            raise RuntimeError(f"Client never connected to server for '{cmd}'")
+            _notify_and_raise(
+                f"Server crashed or failed to return response for '{cmd}'"
+            )
         case _:
             assert_never((server_response, command))
 
@@ -133,7 +132,11 @@ class ATSPIClientActions:
                     "result": ServerStatusResult.generate_from(
                         server_response["result"]
                     ),
+                    "stdout": server_response["stdout"],
                 }
+                if server_response["stdout"]:
+                    print(server_response["stdout"])
+
             except KeyError as enum_decode_error:
                 print("Error decoding enum", enum_decode_error, response)
                 response["client"] = ClientResponse.GENERAL_ERROR
