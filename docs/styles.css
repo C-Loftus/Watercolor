@@ -1,7 +1,7 @@
 /* Default style for body */
 html,
 body {
-  height: 100%; /* Ensure the body and html take up the full height */
+  height: 100%;
   margin: 0;
   padding: 0;
 }
@@ -16,6 +16,7 @@ body {
   background-attachment: fixed;
   display: flex;
   flex-direction: column;
+  margin: 0 10%; /* Add margin for mobile */
 }
 
 /* Media query for desktop devices */
@@ -38,14 +39,15 @@ body {
   padding: 20px;
   flex-grow: 1;
 }
+
 i.note {
-  line-height: 0.2; /* Adjust line height as needed */
+  line-height: 1.2; /* Adjust line height for better readability */
   display: block;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 90%; /* Limit the maximum width of the note */
-  word-wrap: break-word; /* Ensure the note wraps to the next line */
+  margin: 0 auto;
+  max-width: 90%;
+  word-wrap: break-word;
 }
+
 .section {
   border-radius: 10px;
   margin-bottom: 20px;
@@ -61,28 +63,28 @@ i.note {
 }
 
 .footer {
-  background: transparent; /* Set background to transparent */
+  background: transparent;
   padding: 20px;
   text-align: center;
   font-size: 14px;
   color: #333;
-  opacity: 1; /* Ensure full opacity for text */
+  opacity: 1;
 }
 
 .header img {
   position: absolute;
-  top: calc(100% - 60px); /* Position the image slightly below the text */
+  top: calc(100% - 60px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
 }
 
 .header h1 {
-  text-shadow: 4px 5px 4px #809bce; /* Adjust the shadow values as needed */
+  text-shadow: 4px 5px 4px #809bce;
 }
 
 span {
-  background-color: rgba(0, 0, 0, 0.1); /* Adjust opacity as needed */
+  background-color: rgba(0, 0, 0, 0.1);
   border-radius: 6px;
   padding: 6px;
   font: 18px "Ubuntu Mono", sans-serif;
@@ -94,7 +96,6 @@ span.installation {
 }
 
 span > img {
-  /* make it all the way to the right */
   float: right;
   margin-right: 10px;
 }
@@ -110,20 +111,15 @@ img.copy {
 h1 {
   color: #476098;
   font-weight: 800;
-  font-size: 5em;
-  width: 6em;
-  line-height: 0.9em;
-  margin-left: auto;
-  margin-right: auto;
-  margin-top: 1.5em;
+  font-size: 4em;
+  line-height: 1em;
+  margin: 1.5em auto;
+  text-align: center;
 }
 
 .callout {
   color: #476098;
-  background-image: linear-gradient(
-    rgba(71, 96, 152, 1),
-    rgba(71, 96, 152, 0.5)
-  );
+  background-image: linear-gradient(rgba(71, 96, 152, 1), rgba(71, 96, 152, 0.5));
   color: transparent;
   background-clip: text;
   -webkit-background-clip: text;
@@ -142,8 +138,8 @@ p,
 }
 
 ul {
-  margin-left: 20%;
-  transform: translateX(-15%);
+  margin-left: 10%;
+  transform: translateX(-10%);
   line-height: 2em;
   list-style-type: none;
 }
@@ -151,15 +147,12 @@ ul {
 .commands {
   border-collapse: collapse;
   width: 100%;
+  margin: 0 auto;
 }
 
 .commands td {
   padding: 8px;
-  text-align: left;
-}
-
-.commands td:first-child {
-  border-right: none; /* Remove right border for the first column */
+  text-align: center;
 }
 
 .installation {
@@ -197,13 +190,25 @@ ul {
   z-index: 9999;
 }
 
-.commands {
-  border-collapse: collapse;
-  width: 80%; /* Adjust the width as needed */
-  margin: 0 auto; /* Center the table horizontally */
-}
+/* Media query for mobile devices */
+@media only screen and (max-width: 768px) {
+  body {
+    margin: 0 5%;
+  }
+  
+  h1 {
+    font-size: 3em;
+    line-height: 1.2em;
+    width: auto;
+  }
+  
+  .commands {
+    width: 100%;
+  }
+  
+  ul {
+    margin-left: 5%;
+    transform: translateX(0);
+  }
 
-.commands td {
-  padding: 8px;
-  text-align: center; /* Center the content within each cell */
 }
