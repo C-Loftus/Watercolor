@@ -5,14 +5,14 @@ from gi.repository import Atspi
 import json
 import os
 import logging
-from typing import ClassVar, Literal, Optional
+from typing import Literal, Optional
 import sys  # isort:skip
 
 sys.path.append(".")  # isort:skip
 from shared.shared_types import A11yElement  # isort:skip
 import shared.config as config  # isort:skip
 import gi
-from lib import Singleton, InterruptableThread, AtspiEvent, get_states
+from lib import Singleton, InterruptableThread, AtspiEvent
 import time
 
 
@@ -33,6 +33,7 @@ def get_name_fallback(accessible) -> str | Literal["NULL"]:
 class Desktop(Singleton):
     @staticmethod
     def getRoot(specific_app: Optional[str] = None):
+        """Gets the root by either the active window or a specific app override"""
         desktop = Atspi.get_desktop(0)
 
         # atspi gobject introspection doesn't support iterators
@@ -44,13 +45,17 @@ class Desktop(Singleton):
             for j in range(window_count):
                 window = app.get_child_at_index(j)
 
-                states = get_states(window)
+                if not window:
+                    continue
+
+                # states = get_states(window)
+
                 ACTIVE = window.get_state_set().contains(Atspi.StateType.ACTIVE)
                 # Active should not be used for objects which have State::Focusable or State::Selectable:
                 # Those objects should use State::Focused and State::Selected respectively.
 
-                FOCUSABLE = window.get_state_set().contains(Atspi.StateType.FOCUSED)
-                SELECTABLE = window.get_state_set().contains(Atspi.StateType.SELECTED)
+                # FOCUSABLE = window.get_state_set().contains(Atspi.StateType.FOCUSED)
+                # SELECTABLE = window.get_state_set().contains(Atspi.StateType.SELECTED)
 
                 if ACTIVE:
                     # logging.debug(f"{app.get_name()} {states}")

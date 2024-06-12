@@ -5,8 +5,8 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 
 
 def on_draw(c: SkiaCanvas):
-    c.paint.color = "FF0000"
-    c.paint.style = c.paint.Style.FILL
+    c.paint.color = "FF0000" 
+    c.paint.style = c.paint.Style.FILL  
     c.draw_rect(Rect(100, 100, 100, 100))
     c.draw_text("Hello, World!", 100, 100)
 
