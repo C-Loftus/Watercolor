@@ -232,8 +232,12 @@ class A11yTree(Singleton):
         A11yTree.constructor_handle = InterruptableThread(target=interruptable_portion)
         A11yTree.constructor_handle.start()
 
-        # TODO remove this
-        A11yTree.constructor_handle.join()
+        # It is possible the handle is None if right after starting the thread,
+        # it finished with no elements and thus reset the handle to be None upon completion
+        if A11yTree.constructor_handle:
+            # TODO remove this
+            A11yTree.constructor_handle.join()
+
         """
         TODO:
 
