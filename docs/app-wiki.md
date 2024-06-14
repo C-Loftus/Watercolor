@@ -9,4 +9,4 @@ Has both `VISIBLE` and `SHOWING` for the sidebar even when certain sidebar eleme
 
 # Atspi itself
 
-`gi.repository.GLib.GError: atspi_error: The process appears to be hung. (1)`
+`gi.repository.GLib.GError: atspi_error: The process appears to be hung. (1)` is output if we use multithreading and try to concurrent query the dbus interface. Seems there is a throughput issue in the atspi bindings
