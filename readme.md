@@ -9,10 +9,11 @@
 _Note: This repository is a work in progress_
 
 1. Clone this repo into your Talon user directory
-2. Install the `libgirepository1.0-dev` and `libgir1.2-atspi-2.0` packages
-3. Run `make run` to start the atspi server.
-4. Say `color toggle` to add colored hats over a11y elements
-5. Say `color <watercolor_hint>` with the Talon phonetic alphabet to click an element
+2. Install the `libgirepository1.0-dev` and `gir1.2-atspi-2.0` packages
+    * (_These packages are the names in the Ubuntu repos, but may differ in your distro_)
+4. Run `make run` to start the atspi server.
+5. Say `color toggle` to add colored hats over a11y elements
+6. Say `color <watercolor_hint>` with the Talon phonetic alphabet to click an element
 
 > [!NOTE]
 > You must have the atspi-server running via `make run` in order to say Watercolor commands
