@@ -6,7 +6,7 @@
 
 ## Setup
 
-_Note: This repository is a work in progress_
+_Note: This repository is a work in progress and is primarily intended as a proof of concept_
 
 1. Clone this repo into your Talon user directory
 2. Install the `libgirepository1.0-dev` and `gir1.2-atspi-2.0` packages
